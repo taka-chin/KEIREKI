@@ -1,0 +1,23 @@
+# Generated resumes and local exports
+*.pdf
+*.html
+!resume-builder/index.html
+
+# Temporary render/check files
+tmp/
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Local environment and OS/editor files
+.env
+.env.*
+.DS_Store
+.vscode/
+.idea/
+
+# Dependency/build outputs if tooling is added later
+node_modules/
+dist/
+build/

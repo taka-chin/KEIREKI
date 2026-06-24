@@ -188,6 +188,11 @@
     font-size: 12px; padding: 8px 0; color: var(--success);
     min-height: 28px;
   }
+  .template-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+  }
+  .template-name { font-size: 12px; color: var(--text2); }
 
   /* Preview */
   #preview-panel { display: none; }
@@ -217,6 +222,38 @@
   .preview-box td { border: 0.5px solid #ccc; padding: 4px 8px; font-size: 12px; }
   .preview-box .tbl-head td { background: #f5f5f5; font-weight: 700; font-size: 11px; }
   .preview-box .footer-date { font-size: 11px; color: #aaa; text-align: right; margin-top: 16px; }
+  .pdf-career {
+    color: #111;
+    font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .pdf-sheet {
+    background: #fff;
+    min-height: 1040px;
+    padding: 12px 8px 24px;
+    page-break-after: always;
+  }
+  .pdf-sheet:last-child { page-break-after: auto; }
+  .pdf-title { text-align: center; font-size: 24px; letter-spacing: .25em; margin: 8px 0 4px; }
+  .pdf-meta { text-align: right; font-size: 15px; margin-bottom: 18px; }
+  .pdf-table { width: 100%; border-collapse: collapse; border: 1px solid #111; }
+  .pdf-table th, .pdf-table td {
+    border: 1px solid #111;
+    padding: 7px 12px;
+    font-size: 14px;
+    vertical-align: top;
+  }
+  .pdf-table th { background: #eee; text-align: left; font-weight: 400; }
+  .pdf-work-desc { white-space: pre-wrap; min-height: 72px; }
+  .pdf-section-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    border-bottom: 1px solid #111;
+    padding-bottom: 4px;
+  }
+  .pdf-block { white-space: pre-wrap; font-size: 14px; margin-bottom: 28px; }
 
   @media (max-width: 600px) {
     .grid2, .grid3 { grid-template-columns: 1fr; }
@@ -257,6 +294,22 @@
 
     <!-- 職務経歴書フィールド -->
     <div id="career-fields">
+      <div class="card">
+        <div class="section-title">職務経歴書テンプレート</div>
+        <div class="template-row">
+          <div class="template-name" id="career-template-name">標準テンプレート</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="career-template-file" type="file" accept=".pdf,.html,.htm,.txt,application/pdf,text/html,text/plain" style="display:none" onchange="loadCareerTemplate(event)">
+            <button class="btn btn-secondary" onclick="document.getElementById('career-template-file').click()">
+              <i class="ti ti-upload" aria-hidden="true"></i> アップロード
+            </button>
+            <button class="btn btn-secondary" onclick="clearCareerTemplate()">
+              <i class="ti ti-restore" aria-hidden="true"></i> 標準に戻す
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="section-title">職務要約</div>
         <div class="field">
@@ -335,6 +388,8 @@
 <script>
 let docType = 'career';
 let workIds = [], workIds2 = [], eduIds = [];
+let careerTemplate = '';
+let careerTemplateType = '';
 
 function switchDoc(type) {
   docType = type;
@@ -359,6 +414,8 @@ function addWork() {
       <div class="field"><label>雇用形態</label>
         <select><option>正社員</option><option>契約社員</option><option>派遣</option><option>業務委託</option><option>アルバイト</option></select>
       </div>
+      <div class="field"><label>業種</label><input placeholder="ITサービス / 商社 / 飲食業"></div>
+      <div class="field"><label>従業員数</label><input placeholder="100名"></div>
       <div class="field"><label>役職・職種</label><input placeholder="システムエンジニア / テックリード"></div>
       <div class="field"><label>在籍期間</label><input placeholder="2020年4月 〜 2024年3月"></div>
     </div>
@@ -407,13 +464,49 @@ function removeEntry(elemId, id, list) {
   if (list === 'eduIds') eduIds = eduIds.filter(i => i !== id);
 }
 
+function loadCareerTemplate(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
+    careerTemplate = '';
+    careerTemplateType = 'pdf';
+    document.getElementById('career-template-name').textContent = file.name;
+    document.getElementById('status').innerHTML =
+      '<i class="ti ti-check"></i> PDFテンプレート形式に切り替えました。';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    careerTemplate = sanitizeTemplateHTML(String(reader.result || ''));
+    careerTemplateType = 'html';
+    document.getElementById('career-template-name').textContent = file.name;
+    document.getElementById('status').innerHTML =
+      '<i class="ti ti-check"></i> テンプレートを読み込みました。';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function clearCareerTemplate() {
+  careerTemplate = '';
+  careerTemplateType = '';
+  document.getElementById('career-template-file').value = '';
+  document.getElementById('career-template-name').textContent = '標準テンプレート';
+  document.getElementById('status').innerHTML =
+    '<i class="ti ti-check"></i> 標準テンプレートに戻しました。';
+}
+
 function collectData() {
   const g = id => document.getElementById(id)?.value || '';
   const works = workIds.map(id => {
     const c = document.getElementById('work-' + id);
     if (!c) return null;
     const el = c.querySelectorAll('input,select,textarea');
-    return { company: el[0].value, type: el[1].value, role: el[2].value, period: el[3].value, desc: el[4].value };
+    return {
+      company: el[0].value, type: el[1].value, industry: el[2].value,
+      employees: el[3].value, role: el[4].value, period: el[5].value, desc: el[6].value
+    };
   }).filter(Boolean);
 
   const works2 = workIds2.map(id => {
@@ -443,13 +536,16 @@ function buildHTML(data) {
   const contacts = [data.phone, data.email, data.address].filter(Boolean).join(' ｜ ');
 
   if (docType === 'career') {
+    if (careerTemplateType === 'pdf') return renderPdfStyleCareer(data, today);
+    if (careerTemplate) return renderCareerTemplate(careerTemplate, data, today, contacts);
+
     const workHTML = data.works.length
       ? data.works.map(w => `
           <div class="work-header">
             <span class="work-co">${esc(w.company || '（会社名）')}</span>
             <span class="work-period">${esc(w.period)}</span>
           </div>
-          <div class="work-role">${esc(w.role)} ${ w.type ? '| ' + esc(w.type) : ''}</div>
+          <div class="work-role">${[w.role, w.industry, w.type, w.employees].filter(Boolean).map(esc).join(' | ')}</div>
           <div class="work-desc">${esc(w.desc)}</div>
           <hr class="divider">`).join('')
       : '<p style="color:#aaa;font-size:12px">（職歴未入力）</p>';
@@ -496,8 +592,116 @@ function buildHTML(data) {
   }
 }
 
+function renderPdfStyleCareer(data, today) {
+  const works = data.works.length ? data.works : [{
+    company: '（会社名）', type: '', industry: '', employees: '', period: '', desc: ''
+  }];
+  const workTables = works.map(w => `
+    <table class="pdf-table" style="margin-bottom:0">
+      <tr><th colspan="4">職務経歴</th></tr>
+      <tr>
+        <td colspan="2" style="width:50%">期間：${esc(w.period)}</td>
+        <td colspan="2">会社名：${esc(w.company || '（会社名）')}</td>
+      </tr>
+      <tr>
+        <td colspan="2">業種：${esc(w.industry)}</td>
+        <td>雇用形態：${esc(w.type)}</td>
+        <td>従業員数：${esc(w.employees)}</td>
+      </tr>
+      <tr>
+        <td colspan="4">
+          ${w.role ? `<p style="margin-bottom:6px">役職・職種：${esc(w.role)}</p>` : ''}
+          <strong>【担当業務】</strong>
+          <div class="pdf-work-desc">${esc(w.desc)}</div>
+        </td>
+      </tr>
+    </table>`).join('');
+
+  return `
+    <div class="pdf-career">
+      <section class="pdf-sheet">
+        <div class="pdf-title">職務経歴書</div>
+        <div class="pdf-meta">
+          <div>${today}</div>
+          <div>${esc(data.name || '氏名未入力')}</div>
+        </div>
+        ${workTables}
+      </section>
+      <section class="pdf-sheet">
+        ${data.summary ? `
+          <div class="pdf-section-title">職務要約</div>
+          <div class="pdf-block">${esc(data.summary)}</div>` : ''}
+        ${data.skills ? `
+          <div class="pdf-section-title">スキル・資格</div>
+          <div class="pdf-block">${esc(data.skills)}</div>` : ''}
+      </section>
+    </div>`;
+}
+
+function renderCareerTemplate(template, data, today, contacts) {
+  const workItems = data.works.length
+    ? data.works.map(w => `
+        <section class="template-work">
+          <div class="work-header">
+            <span class="work-co">${esc(w.company || '（会社名）')}</span>
+            <span class="work-period">${esc(w.period)}</span>
+          </div>
+          <div class="work-role">${[w.role, w.industry, w.type, w.employees].filter(Boolean).map(esc).join(' | ')}</div>
+          <div class="work-desc">${formatMultiline(w.desc)}</div>
+        </section>`).join('')
+    : '<p style="color:#aaa;font-size:12px">（職歴未入力）</p>';
+
+  const replacements = {
+    today,
+    name: data.name || '氏名未入力',
+    nameKana: data.nameKana,
+    name_kana: data.nameKana,
+    birthday: data.birthday,
+    phone: data.phone,
+    email: data.email,
+    address: data.address,
+    contacts,
+    summary: data.summary,
+    skills: data.skills,
+    works: workItems
+  };
+
+  return template.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (_, key) => {
+    if (key === 'works') return replacements.works;
+    return formatMultiline(replacements[key] || '');
+  });
+}
+
+function sanitizeTemplateHTML(html) {
+  const source = /<\s*(html|head|body)[\s>]/i.test(html)
+    ? extractDocumentTemplate(html)
+    : html;
+  const template = document.createElement('template');
+  template.innerHTML = source;
+  template.content.querySelectorAll('script, iframe, object, embed, link[rel="import"]').forEach(el => el.remove());
+  template.content.querySelectorAll('*').forEach(el => {
+    [...el.attributes].forEach(attr => {
+      const name = attr.name.toLowerCase();
+      const value = attr.value.trim().toLowerCase();
+      if (name.startsWith('on') || value.startsWith('javascript:')) el.removeAttribute(attr.name);
+    });
+  });
+  return template.innerHTML;
+}
+
+function extractDocumentTemplate(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const styles = [...doc.head.querySelectorAll('style')].map(el => el.outerHTML).join('');
+  return styles + doc.body.innerHTML;
+}
+
 function esc(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatMultiline(str) {
+  return esc(str).replace(/\r?\n/g, '<br>');
 }
 
 function previewDoc() {
@@ -537,6 +741,17 @@ function generatePDF() {
   table{width:100%;border-collapse:collapse}
   td{border:0.5px solid #ccc;padding:4px 8px;font-size:12px}
   .tbl-head td{background:#f5f5f5;font-weight:700;font-size:11px}
+  .pdf-career{color:#111;font-family:'Hiragino Mincho ProN','Yu Mincho','YuMincho',serif;font-size:12px;line-height:1.6}
+  .pdf-sheet{background:#fff;min-height:1040px;padding:12px 8px 24px;page-break-after:always}
+  .pdf-sheet:last-child{page-break-after:auto}
+  .pdf-title{text-align:center;font-size:24px;letter-spacing:.25em;margin:8px 0 4px}
+  .pdf-meta{text-align:right;font-size:15px;margin-bottom:18px}
+  .pdf-table{width:100%;border-collapse:collapse;border:1px solid #111}
+  .pdf-table th,.pdf-table td{border:1px solid #111;padding:7px 12px;font-size:14px;vertical-align:top}
+  .pdf-table th{background:#eee;text-align:left;font-weight:400}
+  .pdf-work-desc{white-space:pre-wrap;min-height:72px}
+  .pdf-section-title{font-size:17px;font-weight:700;margin:0 0 12px;border-bottom:1px solid #111;padding-bottom:4px}
+  .pdf-block{white-space:pre-wrap;font-size:14px;margin-bottom:28px}
   @media print{body{padding:16px 24px}@page{margin:1.5cm}}
 </style>
 </head><body>${bodyHTML}</body></html>`;

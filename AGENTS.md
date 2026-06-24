@@ -33,7 +33,11 @@
 
 ## Commit & Pull Request Guidelines
 
-この workspace には Git 履歴がないため、コミットメッセージは `feat: add export validation` や `fix: correct preview layout` のように、目的が分かる Conventional Commits 形式を推奨します。Pull Request には変更概要、UI 変更時のスクリーンショット、手動テスト結果、Docker/nginx への影響を記載してください。関連 Issue がある場合はリンクします。
+現在の履歴は `initial commit` から始まっています。今後のコミットメッセージは、`feat: add export validation` や `fix: correct preview layout` のように、変更目的が分かる短い形式を推奨します。Pull Request には変更概要、UI 変更時のスクリーンショット、手動テスト結果、Docker/nginx への影響を記載してください。関連 Issue がある場合はリンクします。
+
+## Generated Files & Git Management
+
+アプリから出力した履歴書・職務経歴書の HTML/PDF、確認用スクリーンショット、一時レンダリング結果は原則として Git 管理しません。これらは個人情報を含む可能性が高いため、必要な場合はローカルの `tmp/` や OS のダウンロード先に置き、PR に含めないでください。テンプレートとして共有するファイルだけを追加する場合も、サンプル個人情報や実在の連絡先が残っていないことを確認してください。
 
 ## Security & Configuration Tips
 

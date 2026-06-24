@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>職務経歴書・履歴書作成ツール</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f7f5;
+    --bg3: #f0eeea;
+    --text: #1a1a1a;
+    --text2: #666;
+    --text3: #999;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.2);
+    --accent: #1a1a1a;
+    --success: #1a7a4a;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg2: #2c2c2e;
+      --bg3: #3a3a3c;
+      --text: #f0f0f0;
+      --text2: #aaa;
+      --text3: #666;
+      --border: rgba(255,255,255,0.12);
+      --border2: rgba(255,255,255,0.22);
+      --accent: #f0f0f0;
+      --success: #34c77b;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+    background: var(--bg3);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    height: 52px;
+    gap: 12px;
+  }
+  header h1 { font-size: 15px; font-weight: 500; }
+  header .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: 20px;
+    color: var(--text2);
+  }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+  .tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+    margin-bottom: 1.5rem;
+    width: fit-content;
+  }
+  .tab {
+    padding: 7px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: var(--text2);
+    border-radius: calc(var(--radius-lg) - 2px);
+    transition: background .15s, color .15s;
+  }
+  .tab.active {
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .card {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text2);
+    margin-bottom: .75rem;
+    padding-bottom: 6px;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .span2 { grid-column: span 2; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; color: var(--text2); font-weight: 500; }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    font-size: 13px;
+    padding: 8px 10px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    transition: border-color .15s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.06);
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+
+  .entry-card {
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .remove-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: none; border: none; cursor: pointer;
+    color: var(--text3); font-size: 16px; padding: 4px 6px;
+    border-radius: var(--radius); transition: background .1s, color .1s;
+  }
+  .remove-btn:hover { background: var(--bg3); color: var(--text); }
+
+  .add-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    border: 0.5px dashed var(--border2);
+    border-radius: var(--radius);
+    background: none; cursor: pointer;
+    color: var(--text2); width: 100%;
+    transition: background .1s;
+  }
+  .add-btn:hover { background: var(--bg2); }
+
+  .actions {
+    display: flex; gap: 10px; justify-content: flex-end;
+    margin-top: 1.5rem; padding-top: 1rem;
+    border-top: 0.5px solid var(--border);
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 18px; font-size: 13px; font-weight: 500;
+    border-radius: var(--radius); cursor: pointer;
+    font-family: inherit; transition: opacity .15s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: var(--accent); color: var(--bg); border: none; }
+  .btn-secondary {
+    background: none; border: 0.5px solid var(--border2); color: var(--text);
+  }
+
+  .status {
+    font-size: 12px; padding: 8px 0; color: var(--success);
+    min-height: 28px;
+  }
+
+  /* Preview */
+  #preview-panel { display: none; }
+  #preview-panel.show { display: block; }
+  #form-panel.hide { display: none; }
+
+  .preview-box {
+    background: white; color: #222;
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+    font-size: 12.5px; line-height: 1.65;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2rem 2.5rem;
+  }
+  .preview-box h1 { font-size: 20px; font-weight: 700; margin-bottom: 2px; color: #111; }
+  .preview-box .kana { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .preview-box .contacts { font-size: 11.5px; color: #555; display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+  .preview-box .sec-hr { border: none; border-top: 1.5px solid #222; margin: 6px 0 10px; }
+  .preview-box .sec-title { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #111; margin-bottom: 6px; margin-top: 12px; }
+  .preview-box .work-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+  .preview-box .work-co { font-weight: 600; font-size: 13px; }
+  .preview-box .work-period { font-size: 11px; color: #777; }
+  .preview-box .work-role { font-size: 11.5px; color: #555; margin-bottom: 4px; }
+  .preview-box .work-desc { font-size: 12px; color: #333; white-space: pre-wrap; }
+  .preview-box .divider { border: none; border-top: 0.5px solid #e0e0e0; margin: 8px 0; }
+  .preview-box table { width: 100%; border-collapse: collapse; }
+  .preview-box td { border: 0.5px solid #ccc; padding: 4px 8px; font-size: 12px; }
+  .preview-box .tbl-head td { background: #f5f5f5; font-weight: 700; font-size: 11px; }
+  .preview-box .footer-date { font-size: 11px; color: #aaa; text-align: right; margin-top: 16px; }
+
+  @media (max-width: 600px) {
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+    .span2 { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <i class="ti ti-file-text" style="font-size:20px" aria-hidden="true"></i>
+  <h1>職務経歴書・履歴書 作成ツール</h1>
+  <span class="badge">PDF出力対応</span>
+</header>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchDoc('career')">職務経歴書</button>
+    <button class="tab" onclick="switchDoc('resume')">履歴書</button>
+  </div>
+
+  <!-- ===== FORM PANEL ===== -->
+  <div id="form-panel">
+
+    <!-- 基本情報 -->
+    <div class="card">
+      <div class="section-title">基本情報</div>
+      <div class="grid2" style="gap:12px">
+        <div class="field"><label>氏名</label><input id="name" placeholder="山田 太郎"></div>
+        <div class="field"><label>ふりがな</label><input id="name-kana" placeholder="やまだ たろう"></div>
+        <div class="field"><label>生年月日</label><input id="birthday" type="date"></div>
+        <div class="field"><label>電話番号</label><input id="phone" placeholder="090-0000-0000"></div>
+        <div class="field"><label>メールアドレス</label><input id="email" placeholder="taro@example.com"></div>
+        <div class="field"><label>住所</label><input id="address" placeholder="東京都渋谷区〇〇 1-2-3"></div>
+      </div>
+    </div>
+
+    <!-- 職務経歴書フィールド -->
+    <div id="career-fields">
+      <div class="card">
+        <div class="section-title">職務要約</div>
+        <div class="field">
+          <textarea id="summary" rows="3" placeholder="これまでのキャリアと強みを簡潔に記述してください"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">職歴</div>
+        <div id="work-list"></div>
+        <button class="add-btn" onclick="addWork()">
+          <i class="ti ti-plus" aria-hidden="true"></i> 職歴を追加
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="section-title">スキル・資格</div>
+        <div class="field">
+          <textarea id="skills" rows="3" placeholder="例）Python・Java・AWS・プロジェクト管理・PMP取得 など"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 履歴書フィールド -->
+    <div id="resume-fields" style="display:none">
+      <div class="card">
+        <div class="section-title">学歴</div>
+        <div id="edu-list"></div>
+        <button class="add-btn" onclick="addEdu()">
+          <i class="ti ti-plus" aria-hidden="true"></i> 学歴を追加
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="section-title">職歴</div>
+        <div id="work-list2"></div>
+        <button class="add-btn" onclick="addWork2()">
+          <i class="ti ti-plus" aria-hidden="true"></i> 職歴を追加
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="section-title">志望動機・自己PR</div>
+        <div class="field">
+          <textarea id="motivation" rows="4" placeholder="志望動機や自己PRを記入してください"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="previewDoc()">
+        <i class="ti ti-eye" aria-hidden="true"></i> プレビュー
+      </button>
+      <button class="btn btn-primary" onclick="generatePDF()">
+        <i class="ti ti-download" aria-hidden="true"></i> PDFを生成
+      </button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <!-- ===== PREVIEW PANEL ===== -->
+  <div id="preview-panel">
+    <div class="actions" style="margin-top:0;border-top:none;margin-bottom:1rem;padding-top:0">
+      <button class="btn btn-secondary" onclick="backToForm()">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i> 編集に戻る
+      </button>
+      <button class="btn btn-primary" onclick="generatePDF()">
+        <i class="ti ti-download" aria-hidden="true"></i> PDFを生成
+      </button>
+    </div>
+    <div class="preview-box" id="preview-content"></div>
+  </div>
+
+</div>
+
+<script>
+let docType = 'career';
+let workIds = [], workIds2 = [], eduIds = [];
+
+function switchDoc(type) {
+  docType = type;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && type === 'career') || (i === 1 && type === 'resume'));
+  });
+  document.getElementById('career-fields').style.display = type === 'career' ? '' : 'none';
+  document.getElementById('resume-fields').style.display = type === 'resume' ? '' : 'none';
+}
+
+function addWork() {
+  const id = Date.now();
+  workIds.push(id);
+  const div = document.createElement('div');
+  div.className = 'entry-card'; div.id = 'work-' + id;
+  div.innerHTML = `
+    <button class="remove-btn" onclick="removeEntry('work-${id}',${id},'workIds')" title="削除">
+      <i class="ti ti-x"></i>
+    </button>
+    <div class="grid2" style="gap:10px;margin-bottom:10px">
+      <div class="field"><label>会社名</label><input placeholder="株式会社〇〇"></div>
+      <div class="field"><label>雇用形態</label>
+        <select><option>正社員</option><option>契約社員</option><option>派遣</option><option>業務委託</option><option>アルバイト</option></select>
+      </div>
+      <div class="field"><label>役職・職種</label><input placeholder="システムエンジニア / テックリード"></div>
+      <div class="field"><label>在籍期間</label><input placeholder="2020年4月 〜 2024年3月"></div>
+    </div>
+    <div class="field"><label>業務内容・実績</label>
+      <textarea rows="3" placeholder="担当業務、使用技術、達成した成果などを記述してください"></textarea>
+    </div>`;
+  document.getElementById('work-list').appendChild(div);
+}
+
+function addWork2() {
+  const id = Date.now();
+  workIds2.push(id);
+  const div = document.createElement('div');
+  div.className = 'entry-card'; div.id = 'work2-' + id;
+  div.innerHTML = `
+    <button class="remove-btn" onclick="removeEntry('work2-${id}',${id},'workIds2')" title="削除">
+      <i class="ti ti-x"></i>
+    </button>
+    <div class="grid3" style="gap:10px">
+      <div class="field"><label>年月</label><input placeholder="2020年4月"></div>
+      <div class="field span2"><label>会社名・内容</label><input placeholder="株式会社〇〇 入社"></div>
+    </div>`;
+  document.getElementById('work-list2').appendChild(div);
+}
+
+function addEdu() {
+  const id = Date.now();
+  eduIds.push(id);
+  const div = document.createElement('div');
+  div.className = 'entry-card'; div.id = 'edu-' + id;
+  div.innerHTML = `
+    <button class="remove-btn" onclick="removeEntry('edu-${id}',${id},'eduIds')" title="削除">
+      <i class="ti ti-x"></i>
+    </button>
+    <div class="grid3" style="gap:10px">
+      <div class="field"><label>年月</label><input placeholder="2018年3月"></div>
+      <div class="field span2"><label>学校名・学部・学科</label><input placeholder="〇〇大学 工学部 情報工学科 卒業"></div>
+    </div>`;
+  document.getElementById('edu-list').appendChild(div);
+}
+
+function removeEntry(elemId, id, list) {
+  document.getElementById(elemId)?.remove();
+  if (list === 'workIds') workIds = workIds.filter(i => i !== id);
+  if (list === 'workIds2') workIds2 = workIds2.filter(i => i !== id);
+  if (list === 'eduIds') eduIds = eduIds.filter(i => i !== id);
+}
+
+function collectData() {
+  const g = id => document.getElementById(id)?.value || '';
+  const works = workIds.map(id => {
+    const c = document.getElementById('work-' + id);
+    if (!c) return null;
+    const el = c.querySelectorAll('input,select,textarea');
+    return { company: el[0].value, type: el[1].value, role: el[2].value, period: el[3].value, desc: el[4].value };
+  }).filter(Boolean);
+
+  const works2 = workIds2.map(id => {
+    const c = document.getElementById('work2-' + id);
+    if (!c) return null;
+    const el = c.querySelectorAll('input');
+    return { date: el[0].value, content: el[1].value };
+  }).filter(Boolean);
+
+  const edus = eduIds.map(id => {
+    const c = document.getElementById('edu-' + id);
+    if (!c) return null;
+    const el = c.querySelectorAll('input');
+    return { date: el[0].value, content: el[1].value };
+  }).filter(Boolean);
+
+  return {
+    name: g('name'), nameKana: g('name-kana'), birthday: g('birthday'),
+    phone: g('phone'), email: g('email'), address: g('address'),
+    summary: g('summary'), skills: g('skills'), motivation: g('motivation'),
+    works, works2, edus
+  };
+}
+
+function buildHTML(data) {
+  const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+  const contacts = [data.phone, data.email, data.address].filter(Boolean).join(' ｜ ');
+
+  if (docType === 'career') {
+    const workHTML = data.works.length
+      ? data.works.map(w => `
+          <div class="work-header">
+            <span class="work-co">${esc(w.company || '（会社名）')}</span>
+            <span class="work-period">${esc(w.period)}</span>
+          </div>
+          <div class="work-role">${esc(w.role)} ${ w.type ? '| ' + esc(w.type) : ''}</div>
+          <div class="work-desc">${esc(w.desc)}</div>
+          <hr class="divider">`).join('')
+      : '<p style="color:#aaa;font-size:12px">（職歴未入力）</p>';
+
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <h1>${esc(data.name || '氏名未入力')}</h1>
+          ${data.nameKana ? `<div class="kana">${esc(data.nameKana)}</div>` : ''}
+          <div class="contacts">${contacts}</div>
+        </div>
+        <div class="footer-date" style="margin-top:0">${today}</div>
+      </div>
+      <hr class="sec-hr">
+      ${data.summary ? `<div class="sec-title">職務要約</div><p style="font-size:12px;margin-bottom:8px;white-space:pre-wrap">${esc(data.summary)}</p>` : ''}
+      <div class="sec-title">職務経歴</div>
+      ${workHTML}
+      ${data.skills ? `<div class="sec-title" style="margin-top:10px">スキル・資格</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.skills)}</p>` : ''}`;
+  } else {
+    const age = data.birthday
+      ? `（${Math.floor((Date.now() - new Date(data.birthday)) / 31557600000)}歳）` : '';
+    const eduRows = data.edus.map(e =>
+      `<tr><td style="width:90px">${esc(e.date)}</td><td>${esc(e.content)}</td></tr>`).join('');
+    const workRows2 = data.works2.map(w =>
+      `<tr><td style="width:90px">${esc(w.date)}</td><td>${esc(w.content)}</td></tr>`).join('');
+
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <h1>${esc(data.name || '氏名未入力')}</h1>
+          ${data.nameKana ? `<div class="kana">${esc(data.nameKana)}</div>` : ''}
+        </div>
+        <div class="footer-date" style="margin-top:0">${today}</div>
+      </div>
+      <div class="contacts">${[data.birthday ? data.birthday.replace(/-/g,'/') + age : '', ...contacts.split(' ｜ ')].filter(Boolean).join(' ｜ ')}</div>
+      <hr class="sec-hr">
+      <table>
+        <tr class="tbl-head"><td colspan="2">学歴</td></tr>
+        ${eduRows || '<tr><td colspan="2" style="color:#aaa">（未入力）</td></tr>'}
+        <tr class="tbl-head"><td colspan="2">職歴</td></tr>
+        ${workRows2 || '<tr><td colspan="2" style="color:#aaa">（未入力）</td></tr>'}
+      </table>
+      ${data.motivation ? `<div class="sec-title" style="margin-top:12px">志望動機・自己PR</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.motivation)}</p>` : ''}`;
+  }
+}
+
+function esc(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function previewDoc() {
+  const data = collectData();
+  document.getElementById('preview-content').innerHTML = buildHTML(data);
+  document.getElementById('form-panel').classList.add('hide');
+  document.getElementById('preview-panel').classList.add('show');
+}
+
+function backToForm() {
+  document.getElementById('form-panel').classList.remove('hide');
+  document.getElementById('preview-panel').classList.remove('show');
+}
+
+function generatePDF() {
+  const data = collectData();
+  const title = docType === 'career' ? '職務経歴書' : '履歴書';
+  const bodyHTML = buildHTML(data);
+
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+<title>${title}_${data.name || 'document'}</title>
+<style>
+  body { font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN',Meiryo,sans-serif;
+    font-size:12.5px;color:#222;line-height:1.65;padding:32px 44px;max-width:800px;margin:0 auto }
+  h1{font-size:20px;font-weight:700;margin-bottom:2px;color:#111}
+  .kana{font-size:12px;color:#888;margin-bottom:6px}
+  .contacts{font-size:11.5px;color:#555;display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+  .sec-hr{border:none;border-top:1.5px solid #222;margin:6px 0 10px}
+  .sec-title{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#111;margin-bottom:6px;margin-top:12px}
+  .work-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px}
+  .work-co{font-weight:600;font-size:13px}
+  .work-period{font-size:11px;color:#777}
+  .work-role{font-size:11.5px;color:#555;margin-bottom:4px}
+  .work-desc{font-size:12px;color:#333;white-space:pre-wrap}
+  .divider{border:none;border-top:0.5px solid #e0e0e0;margin:8px 0}
+  .footer-date{font-size:11px;color:#aaa;text-align:right;margin-top:16px}
+  table{width:100%;border-collapse:collapse}
+  td{border:0.5px solid #ccc;padding:4px 8px;font-size:12px}
+  .tbl-head td{background:#f5f5f5;font-weight:700;font-size:11px}
+  @media print{body{padding:16px 24px}@page{margin:1.5cm}}
+</style>
+</head><body>${bodyHTML}</body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${title}_${data.name || 'document'}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  document.getElementById('status').innerHTML =
+    '<i class="ti ti-check"></i> HTMLファイルを出力しました。ブラウザで開き「印刷」→「PDFに保存」を選択してください。';
+}
+
+// 初期エントリ
+addWork();
+</script>
+</body>
+</html>

@@ -137,6 +137,17 @@
     box-shadow: 0 0 0 2px rgba(0,0,0,0.06);
   }
   .field textarea { resize: vertical; min-height: 80px; }
+  .field-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .field-head label { margin: 0; }
+  .ai-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
 
   .entry-card {
     background: var(--bg2);
@@ -313,6 +324,12 @@
       <div class="card">
         <div class="section-title">職務要約</div>
         <div class="field">
+          <div class="field-head">
+            <label for="summary">本文</label>
+            <button class="btn btn-secondary ai-btn" onclick="improveText('summary')">
+              <i class="ti ti-sparkles" aria-hidden="true"></i> AIで整える
+            </button>
+          </div>
           <textarea id="summary" rows="3" placeholder="これまでのキャリアと強みを簡潔に記述してください"></textarea>
         </div>
       </div>
@@ -328,6 +345,12 @@
       <div class="card">
         <div class="section-title">スキル・資格</div>
         <div class="field">
+          <div class="field-head">
+            <label for="skills">本文</label>
+            <button class="btn btn-secondary ai-btn" onclick="improveText('skills')">
+              <i class="ti ti-sparkles" aria-hidden="true"></i> AIで整える
+            </button>
+          </div>
           <textarea id="skills" rows="3" placeholder="例）Python・Java・AWS・プロジェクト管理・PMP取得 など"></textarea>
         </div>
       </div>
@@ -335,6 +358,22 @@
 
     <!-- 履歴書フィールド -->
     <div id="resume-fields" style="display:none">
+      <div class="card">
+        <div class="section-title">履歴書テンプレート</div>
+        <div class="template-row">
+          <div class="template-name" id="resume-template-name">標準テンプレート</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="resume-template-file" type="file" accept=".pdf,.html,.htm,.txt,application/pdf,text/html,text/plain" style="display:none" onchange="loadResumeTemplate(event)">
+            <button class="btn btn-secondary" onclick="document.getElementById('resume-template-file').click()">
+              <i class="ti ti-upload" aria-hidden="true"></i> アップロード
+            </button>
+            <button class="btn btn-secondary" onclick="clearResumeTemplate()">
+              <i class="ti ti-restore" aria-hidden="true"></i> 標準に戻す
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="section-title">学歴</div>
         <div id="edu-list"></div>
@@ -354,6 +393,12 @@
       <div class="card">
         <div class="section-title">志望動機・自己PR</div>
         <div class="field">
+          <div class="field-head">
+            <label for="motivation">本文</label>
+            <button class="btn btn-secondary ai-btn" onclick="improveText('motivation')">
+              <i class="ti ti-sparkles" aria-hidden="true"></i> AIで整える
+            </button>
+          </div>
           <textarea id="motivation" rows="4" placeholder="志望動機や自己PRを記入してください"></textarea>
         </div>
       </div>
@@ -390,6 +435,8 @@ let docType = 'career';
 let workIds = [], workIds2 = [], eduIds = [];
 let careerTemplate = '';
 let careerTemplateType = '';
+let resumeTemplate = '';
+let resumeTemplateType = '';
 
 function switchDoc(type) {
   docType = type;
@@ -419,7 +466,13 @@ function addWork() {
       <div class="field"><label>役職・職種</label><input placeholder="システムエンジニア / テックリード"></div>
       <div class="field"><label>在籍期間</label><input placeholder="2020年4月 〜 2024年3月"></div>
     </div>
-    <div class="field"><label>業務内容・実績</label>
+    <div class="field">
+      <div class="field-head">
+        <label>業務内容・実績</label>
+        <button class="btn btn-secondary ai-btn" onclick="improveText(this.closest('.field').querySelector('textarea'))">
+          <i class="ti ti-sparkles" aria-hidden="true"></i> AIで整える
+        </button>
+      </div>
       <textarea rows="3" placeholder="担当業務、使用技術、達成した成果などを記述してください"></textarea>
     </div>`;
   document.getElementById('work-list').appendChild(div);
@@ -465,13 +518,29 @@ function removeEntry(elemId, id, list) {
 }
 
 function loadCareerTemplate(event) {
+  loadTemplate(event, 'career');
+}
+
+function clearCareerTemplate() {
+  clearTemplate('career');
+}
+
+function loadResumeTemplate(event) {
+  loadTemplate(event, 'resume');
+}
+
+function clearResumeTemplate() {
+  clearTemplate('resume');
+}
+
+function loadTemplate(event, type) {
   const file = event.target.files?.[0];
   if (!file) return;
+  const nameId = `${type}-template-name`;
 
   if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
-    careerTemplate = '';
-    careerTemplateType = 'pdf';
-    document.getElementById('career-template-name').textContent = file.name;
+    setTemplate(type, '', 'pdf');
+    document.getElementById(nameId).textContent = file.name;
     document.getElementById('status').innerHTML =
       '<i class="ti ti-check"></i> PDFテンプレート形式に切り替えました。';
     return;
@@ -479,22 +548,30 @@ function loadCareerTemplate(event) {
 
   const reader = new FileReader();
   reader.onload = () => {
-    careerTemplate = sanitizeTemplateHTML(String(reader.result || ''));
-    careerTemplateType = 'html';
-    document.getElementById('career-template-name').textContent = file.name;
+    setTemplate(type, sanitizeTemplateHTML(String(reader.result || '')), 'html');
+    document.getElementById(nameId).textContent = file.name;
     document.getElementById('status').innerHTML =
       '<i class="ti ti-check"></i> テンプレートを読み込みました。';
   };
   reader.readAsText(file, 'UTF-8');
 }
 
-function clearCareerTemplate() {
-  careerTemplate = '';
-  careerTemplateType = '';
-  document.getElementById('career-template-file').value = '';
-  document.getElementById('career-template-name').textContent = '標準テンプレート';
+function clearTemplate(type) {
+  setTemplate(type, '', '');
+  document.getElementById(`${type}-template-file`).value = '';
+  document.getElementById(`${type}-template-name`).textContent = '標準テンプレート';
   document.getElementById('status').innerHTML =
     '<i class="ti ti-check"></i> 標準テンプレートに戻しました。';
+}
+
+function setTemplate(type, template, templateType) {
+  if (type === 'career') {
+    careerTemplate = template;
+    careerTemplateType = templateType;
+    return;
+  }
+  resumeTemplate = template;
+  resumeTemplateType = templateType;
 }
 
 function collectData() {
@@ -537,7 +614,7 @@ function buildHTML(data) {
 
   if (docType === 'career') {
     if (careerTemplateType === 'pdf') return renderPdfStyleCareer(data, today);
-    if (careerTemplate) return renderCareerTemplate(careerTemplate, data, today, contacts);
+    if (careerTemplate) return renderDocumentTemplate(careerTemplate, data, today, contacts, 'career');
 
     const workHTML = data.works.length
       ? data.works.map(w => `
@@ -565,6 +642,9 @@ function buildHTML(data) {
       ${workHTML}
       ${data.skills ? `<div class="sec-title" style="margin-top:10px">スキル・資格</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.skills)}</p>` : ''}`;
   } else {
+    if (resumeTemplateType === 'pdf') return renderPdfStyleResume(data, today, contacts);
+    if (resumeTemplate) return renderDocumentTemplate(resumeTemplate, data, today, contacts, 'resume');
+
     const age = data.birthday
       ? `（${Math.floor((Date.now() - new Date(data.birthday)) / 31557600000)}歳）` : '';
     const eduRows = data.edus.map(e =>
@@ -638,7 +718,56 @@ function renderPdfStyleCareer(data, today) {
     </div>`;
 }
 
-function renderCareerTemplate(template, data, today, contacts) {
+function renderPdfStyleResume(data, today, contacts) {
+  const age = data.birthday
+    ? `（${Math.floor((Date.now() - new Date(data.birthday)) / 31557600000)}歳）` : '';
+  const eduRows = data.edus.map(e =>
+    `<tr><td style="width:110px">${esc(e.date)}</td><td>${esc(e.content)}</td></tr>`).join('');
+  const workRows = data.works2.map(w =>
+    `<tr><td style="width:110px">${esc(w.date)}</td><td>${esc(w.content)}</td></tr>`).join('');
+
+  return `
+    <div class="pdf-career">
+      <section class="pdf-sheet">
+        <div class="pdf-title">履歴書</div>
+        <div class="pdf-meta">${today}</div>
+        <table class="pdf-table">
+          <tr>
+            <th style="width:28%">氏名</th>
+            <td>${esc(data.name || '氏名未入力')}${data.nameKana ? `<br>${esc(data.nameKana)}` : ''}</td>
+          </tr>
+          <tr>
+            <th>生年月日</th>
+            <td>${esc(data.birthday)} ${age}</td>
+          </tr>
+          <tr>
+            <th>連絡先</th>
+            <td>${esc(contacts)}</td>
+          </tr>
+        </table>
+        <div class="pdf-section-title" style="margin-top:20px">学歴</div>
+        <table class="pdf-table">${eduRows || '<tr><td style="color:#aaa">（未入力）</td></tr>'}</table>
+        <div class="pdf-section-title" style="margin-top:20px">職歴</div>
+        <table class="pdf-table">${workRows || '<tr><td style="color:#aaa">（未入力）</td></tr>'}</table>
+        ${data.motivation ? `
+          <div class="pdf-section-title" style="margin-top:20px">志望動機・自己PR</div>
+          <div class="pdf-block">${esc(data.motivation)}</div>` : ''}
+      </section>
+    </div>`;
+}
+
+function renderDocumentTemplate(template, data, today, contacts, type) {
+  const replacements = type === 'resume'
+    ? buildResumeReplacements(data, today, contacts)
+    : buildCareerReplacements(data, today, contacts);
+
+  return template.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (_, key) => {
+    if (key === 'works' || key === 'education' || key === 'resumeWorks') return replacements[key] || '';
+    return formatMultiline(replacements[key] || '');
+  });
+}
+
+function buildCareerReplacements(data, today, contacts) {
   const workItems = data.works.length
     ? data.works.map(w => `
         <section class="template-work">
@@ -651,7 +780,7 @@ function renderCareerTemplate(template, data, today, contacts) {
         </section>`).join('')
     : '<p style="color:#aaa;font-size:12px">（職歴未入力）</p>';
 
-  const replacements = {
+  return {
     today,
     name: data.name || '氏名未入力',
     nameKana: data.nameKana,
@@ -665,11 +794,38 @@ function renderCareerTemplate(template, data, today, contacts) {
     skills: data.skills,
     works: workItems
   };
+}
 
-  return template.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (_, key) => {
-    if (key === 'works') return replacements.works;
-    return formatMultiline(replacements[key] || '');
-  });
+function buildResumeReplacements(data, today, contacts) {
+  const education = data.edus.length
+    ? data.edus.map(e => `
+        <tr>
+          <td style="width:90px">${esc(e.date)}</td>
+          <td>${esc(e.content)}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="2" style="color:#aaa">（未入力）</td></tr>';
+  const resumeWorks = data.works2.length
+    ? data.works2.map(w => `
+        <tr>
+          <td style="width:90px">${esc(w.date)}</td>
+          <td>${esc(w.content)}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="2" style="color:#aaa">（未入力）</td></tr>';
+
+  return {
+    today,
+    name: data.name || '氏名未入力',
+    nameKana: data.nameKana,
+    name_kana: data.nameKana,
+    birthday: data.birthday,
+    phone: data.phone,
+    email: data.email,
+    address: data.address,
+    contacts,
+    education,
+    resumeWorks,
+    motivation: data.motivation
+  };
 }
 
 function sanitizeTemplateHTML(html) {
@@ -702,6 +858,16 @@ function esc(str) {
 
 function formatMultiline(str) {
   return esc(str).replace(/\r?\n/g, '<br>');
+}
+
+function improveText(targetTextarea) {
+  const textarea = typeof targetTextarea === 'string'
+    ? document.getElementById(targetTextarea)
+    : targetTextarea;
+  if (!textarea) return;
+  textarea.focus();
+  document.getElementById('status').innerHTML =
+    '<i class="ti ti-sparkles"></i> AI接続は未実装です。今後API接続予定です。';
 }
 
 function previewDoc() {

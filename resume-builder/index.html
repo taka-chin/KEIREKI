@@ -199,6 +199,11 @@
     font-size: 12px; padding: 8px 0; color: var(--success);
     min-height: 28px;
   }
+  .draft-actions {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+  }
+  .draft-status { font-size: 12px; color: var(--text2); min-height: 28px; }
   .template-row {
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; flex-wrap: wrap;
@@ -412,7 +417,13 @@
         <i class="ti ti-download" aria-hidden="true"></i> PDFを生成
       </button>
     </div>
-    <div class="status" id="status"></div>
+    <div class="draft-actions">
+      <div class="status" id="status"></div>
+      <button class="btn btn-secondary" onclick="clearDraft()">
+        <i class="ti ti-trash" aria-hidden="true"></i> 下書きを削除
+      </button>
+    </div>
+    <div class="draft-status" id="draft-status"></div>
   </div>
 
   <!-- ===== PREVIEW PANEL ===== -->
@@ -431,12 +442,15 @@
 </div>
 
 <script>
+const DRAFT_KEY = 'resume-builder:draft:v1';
 let docType = 'career';
 let workIds = [], workIds2 = [], eduIds = [];
 let careerTemplate = '';
 let careerTemplateType = '';
 let resumeTemplate = '';
 let resumeTemplateType = '';
+let entryIdSeq = Date.now();
+let suppressDraftSave = false;
 
 function switchDoc(type) {
   docType = type;
@@ -445,10 +459,11 @@ function switchDoc(type) {
   });
   document.getElementById('career-fields').style.display = type === 'career' ? '' : 'none';
   document.getElementById('resume-fields').style.display = type === 'resume' ? '' : 'none';
+  saveDraft();
 }
 
-function addWork() {
-  const id = Date.now();
+function addWork(data = null) {
+  const id = nextEntryId();
   workIds.push(id);
   const div = document.createElement('div');
   div.className = 'entry-card'; div.id = 'work-' + id;
@@ -476,10 +491,12 @@ function addWork() {
       <textarea rows="3" placeholder="担当業務、使用技術、達成した成果などを記述してください"></textarea>
     </div>`;
   document.getElementById('work-list').appendChild(div);
+  if (data) setCareerWorkValues(div, data);
+  saveDraft();
 }
 
-function addWork2() {
-  const id = Date.now();
+function addWork2(data = null) {
+  const id = nextEntryId();
   workIds2.push(id);
   const div = document.createElement('div');
   div.className = 'entry-card'; div.id = 'work2-' + id;
@@ -492,10 +509,12 @@ function addWork2() {
       <div class="field span2"><label>会社名・内容</label><input placeholder="株式会社〇〇 入社"></div>
     </div>`;
   document.getElementById('work-list2').appendChild(div);
+  if (data) setResumeWorkValues(div, data);
+  saveDraft();
 }
 
-function addEdu() {
-  const id = Date.now();
+function addEdu(data = null) {
+  const id = nextEntryId();
   eduIds.push(id);
   const div = document.createElement('div');
   div.className = 'entry-card'; div.id = 'edu-' + id;
@@ -508,6 +527,8 @@ function addEdu() {
       <div class="field span2"><label>学校名・学部・学科</label><input placeholder="〇〇大学 工学部 情報工学科 卒業"></div>
     </div>`;
   document.getElementById('edu-list').appendChild(div);
+  if (data) setEducationValues(div, data);
+  saveDraft();
 }
 
 function removeEntry(elemId, id, list) {
@@ -515,6 +536,7 @@ function removeEntry(elemId, id, list) {
   if (list === 'workIds') workIds = workIds.filter(i => i !== id);
   if (list === 'workIds2') workIds2 = workIds2.filter(i => i !== id);
   if (list === 'eduIds') eduIds = eduIds.filter(i => i !== id);
+  saveDraft();
 }
 
 function loadCareerTemplate(event) {
@@ -543,6 +565,7 @@ function loadTemplate(event, type) {
     document.getElementById(nameId).textContent = file.name;
     document.getElementById('status').innerHTML =
       '<i class="ti ti-check"></i> PDFテンプレート形式に切り替えました。';
+    saveDraft();
     return;
   }
 
@@ -552,6 +575,7 @@ function loadTemplate(event, type) {
     document.getElementById(nameId).textContent = file.name;
     document.getElementById('status').innerHTML =
       '<i class="ti ti-check"></i> テンプレートを読み込みました。';
+    saveDraft();
   };
   reader.readAsText(file, 'UTF-8');
 }
@@ -562,6 +586,7 @@ function clearTemplate(type) {
   document.getElementById(`${type}-template-name`).textContent = '標準テンプレート';
   document.getElementById('status').innerHTML =
     '<i class="ti ti-check"></i> 標準テンプレートに戻しました。';
+  saveDraft();
 }
 
 function setTemplate(type, template, templateType) {
@@ -572,6 +597,146 @@ function setTemplate(type, template, templateType) {
   }
   resumeTemplate = template;
   resumeTemplateType = templateType;
+}
+
+function nextEntryId() {
+  entryIdSeq += 1;
+  return entryIdSeq;
+}
+
+function collectDraft() {
+  return {
+    docType,
+    ...collectData(),
+    careerTemplate,
+    careerTemplateType,
+    resumeTemplate,
+    resumeTemplateType
+  };
+}
+
+function saveDraft() {
+  if (suppressDraftSave) return;
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraft()));
+    setDraftStatus('自動保存済み');
+  } catch (err) {
+    setDraftStatus('自動保存できませんでした');
+  }
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function restoreDraft(draft) {
+  suppressDraftSave = true;
+
+  setValue('name', draft.name);
+  setValue('name-kana', draft.nameKana);
+  setValue('birthday', draft.birthday);
+  setValue('phone', draft.phone);
+  setValue('email', draft.email);
+  setValue('address', draft.address);
+  setValue('summary', draft.summary);
+  setValue('skills', draft.skills);
+  setValue('motivation', draft.motivation);
+
+  document.getElementById('work-list').innerHTML = '';
+  document.getElementById('work-list2').innerHTML = '';
+  document.getElementById('edu-list').innerHTML = '';
+  workIds = [];
+  workIds2 = [];
+  eduIds = [];
+
+  (draft.works || []).forEach(work => addWork(work));
+  (draft.works2 || []).forEach(work => addWork2(work));
+  (draft.edus || []).forEach(edu => addEdu(edu));
+
+  careerTemplate = draft.careerTemplate || '';
+  careerTemplateType = draft.careerTemplateType || '';
+  resumeTemplate = draft.resumeTemplate || '';
+  resumeTemplateType = draft.resumeTemplateType || '';
+  updateTemplateLabel('career');
+  updateTemplateLabel('resume');
+  switchDoc(draft.docType === 'resume' ? 'resume' : 'career');
+
+  suppressDraftSave = false;
+  setDraftStatus('下書きを復元しました');
+}
+
+function initDraftPersistence() {
+  document.getElementById('form-panel').addEventListener('input', saveDraft);
+  document.getElementById('form-panel').addEventListener('change', saveDraft);
+
+  const draft = loadDraft();
+  if (draft) {
+    restoreDraft(draft);
+    return;
+  }
+
+  addWork();
+}
+
+function clearDraft() {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+    setDraftStatus('下書きを削除しました');
+  } catch (err) {
+    setDraftStatus('下書きを削除できませんでした');
+  }
+}
+
+function setDraftStatus(message) {
+  const el = document.getElementById('draft-status');
+  if (el) el.textContent = message;
+}
+
+function setValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value || '';
+}
+
+function setCareerWorkValues(container, data) {
+  const el = container.querySelectorAll('input,select,textarea');
+  el[0].value = data.company || '';
+  el[1].value = data.type || '正社員';
+  el[2].value = data.industry || '';
+  el[3].value = data.employees || '';
+  el[4].value = data.role || '';
+  el[5].value = data.period || '';
+  el[6].value = data.desc || '';
+}
+
+function setResumeWorkValues(container, data) {
+  const el = container.querySelectorAll('input');
+  el[0].value = data.date || '';
+  el[1].value = data.content || '';
+}
+
+function setEducationValues(container, data) {
+  const el = container.querySelectorAll('input');
+  el[0].value = data.date || '';
+  el[1].value = data.content || '';
+}
+
+function updateTemplateLabel(type) {
+  const templateType = type === 'career' ? careerTemplateType : resumeTemplateType;
+  const template = type === 'career' ? careerTemplate : resumeTemplate;
+  const label = document.getElementById(`${type}-template-name`);
+  if (!label) return;
+  if (templateType === 'pdf') {
+    label.textContent = 'PDFテンプレート形式';
+  } else if (template) {
+    label.textContent = '保存済みテンプレート';
+  } else {
+    label.textContent = '標準テンプレート';
+  }
 }
 
 function collectData() {
@@ -933,8 +1098,7 @@ function generatePDF() {
     '<i class="ti ti-check"></i> HTMLファイルを出力しました。ブラウザで開き「印刷」→「PDFに保存」を選択してください。';
 }
 
-// 初期エントリ
-addWork();
+initDraftPersistence();
 </script>
 </body>
 </html>

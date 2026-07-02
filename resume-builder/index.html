@@ -52,7 +52,39 @@
     color: var(--text2);
   }
 
-  .container { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem; }
+  .container { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 860px) minmax(360px, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .workspace.preview-mode { grid-template-columns: 1fr; }
+  .workspace.preview-mode .editor-column,
+  .workspace.preview-mode .live-preview { display: none; }
+  .editor-column { min-width: 0; }
+  .live-preview {
+    position: sticky;
+    top: 72px;
+    align-self: start;
+    max-height: calc(100vh - 96px);
+    overflow: auto;
+  }
+  .live-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .75rem;
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .live-preview .preview-box {
+    padding: 1.25rem 1.5rem;
+    min-height: 560px;
+    transform-origin: top center;
+  }
 
   .tabs {
     display: flex;
@@ -200,7 +232,7 @@
 
   /* Preview */
   #preview-panel { display: none; }
-  #preview-panel.show { display: block; }
+  #preview-panel.show { display: block; grid-column: 1 / -1; }
   #form-panel.hide { display: none; }
 
   .preview-box {
@@ -263,6 +295,10 @@
     .grid2, .grid3 { grid-template-columns: 1fr; }
     .span2 { grid-column: span 1; }
   }
+  @media (max-width: 1100px) {
+    .workspace { grid-template-columns: 1fr; }
+    .live-preview { position: static; max-height: none; }
+  }
 </style>
 </head>
 <body>
@@ -280,8 +316,11 @@
     <button class="tab" onclick="switchDoc('resume')">履歴書</button>
   </div>
 
-  <!-- ===== FORM PANEL ===== -->
-  <div id="form-panel">
+  <div class="workspace">
+  <div class="editor-column">
+
+    <!-- ===== FORM PANEL ===== -->
+    <div id="form-panel">
 
     <!-- 基本情報 -->
     <div class="card">
@@ -399,7 +438,7 @@
 
     <div class="actions">
       <button class="btn btn-secondary" onclick="previewDoc()">
-        <i class="ti ti-eye" aria-hidden="true"></i> プレビュー
+        <i class="ti ti-eye" aria-hidden="true"></i> 拡大プレビュー
       </button>
       <button class="btn btn-primary" onclick="generatePDF()">
         <i class="ti ti-download" aria-hidden="true"></i> PDFを生成
@@ -412,7 +451,16 @@
       </button>
     </div>
     <div class="draft-status" id="draft-status"></div>
+    </div>
   </div>
+
+  <aside class="live-preview" aria-label="PDFプレビュー">
+    <div class="live-preview-head">
+      <span>PDFプレビュー</span>
+      <span id="live-preview-doc-name">職務経歴書</span>
+    </div>
+    <div class="preview-box" id="live-preview-content"></div>
+  </aside>
 
   <!-- ===== PREVIEW PANEL ===== -->
   <div id="preview-panel">
@@ -425,6 +473,7 @@
       </button>
     </div>
     <div class="preview-box" id="preview-content"></div>
+  </div>
   </div>
 
 </div>
@@ -447,6 +496,7 @@ function switchDoc(type) {
   });
   document.getElementById('career-fields').style.display = type === 'career' ? '' : 'none';
   document.getElementById('resume-fields').style.display = type === 'resume' ? '' : 'none';
+  updateLivePreview();
   saveDraft();
 }
 
@@ -480,6 +530,7 @@ function addWork(data = null) {
     </div>`;
   document.getElementById('work-list').appendChild(div);
   if (data) setCareerWorkValues(div, data);
+  updateLivePreview();
   saveDraft();
 }
 
@@ -498,6 +549,7 @@ function addWork2(data = null) {
     </div>`;
   document.getElementById('work-list2').appendChild(div);
   if (data) setResumeWorkValues(div, data);
+  updateLivePreview();
   saveDraft();
 }
 
@@ -516,6 +568,7 @@ function addEdu(data = null) {
     </div>`;
   document.getElementById('edu-list').appendChild(div);
   if (data) setEducationValues(div, data);
+  updateLivePreview();
   saveDraft();
 }
 
@@ -524,6 +577,7 @@ function removeEntry(elemId, id, list) {
   if (list === 'workIds') workIds = workIds.filter(i => i !== id);
   if (list === 'workIds2') workIds2 = workIds2.filter(i => i !== id);
   if (list === 'eduIds') eduIds = eduIds.filter(i => i !== id);
+  updateLivePreview();
   saveDraft();
 }
 
@@ -553,6 +607,7 @@ function loadTemplate(event, type) {
     document.getElementById(nameId).textContent = file.name;
     document.getElementById('status').innerHTML =
       '<i class="ti ti-check"></i> PDFテンプレート形式に切り替えました。';
+    updateLivePreview();
     saveDraft();
     return;
   }
@@ -563,6 +618,7 @@ function loadTemplate(event, type) {
     document.getElementById(nameId).textContent = file.name;
     document.getElementById('status').innerHTML =
       '<i class="ti ti-check"></i> テンプレートを読み込みました。';
+    updateLivePreview();
     saveDraft();
   };
   reader.readAsText(file, 'UTF-8');
@@ -574,6 +630,7 @@ function clearTemplate(type) {
   document.getElementById(`${type}-template-name`).textContent = '標準テンプレート';
   document.getElementById('status').innerHTML =
     '<i class="ti ti-check"></i> 標準テンプレートに戻しました。';
+  updateLivePreview();
   saveDraft();
 }
 
@@ -659,16 +716,23 @@ function restoreDraft(draft) {
 }
 
 function initDraftPersistence() {
-  document.getElementById('form-panel').addEventListener('input', saveDraft);
-  document.getElementById('form-panel').addEventListener('change', saveDraft);
+  document.getElementById('form-panel').addEventListener('input', handleFormChange);
+  document.getElementById('form-panel').addEventListener('change', handleFormChange);
 
   const draft = loadDraft();
   if (draft) {
     restoreDraft(draft);
+    updateLivePreview();
     return;
   }
 
   addWork();
+  updateLivePreview();
+}
+
+function handleFormChange() {
+  updateLivePreview();
+  saveDraft();
 }
 
 function clearDraft() {
@@ -683,6 +747,14 @@ function clearDraft() {
 function setDraftStatus(message) {
   const el = document.getElementById('draft-status');
   if (el) el.textContent = message;
+}
+
+function updateLivePreview() {
+  const preview = document.getElementById('live-preview-content');
+  if (!preview) return;
+  preview.innerHTML = buildHTML(collectData());
+  const name = document.getElementById('live-preview-doc-name');
+  if (name) name.textContent = docType === 'career' ? '職務経歴書' : '履歴書';
 }
 
 function setValue(id, value) {
@@ -1027,12 +1099,15 @@ function previewDoc() {
   const data = collectData();
   document.getElementById('preview-content').innerHTML = buildHTML(data);
   document.getElementById('form-panel').classList.add('hide');
+  document.querySelector('.workspace')?.classList.add('preview-mode');
   document.getElementById('preview-panel').classList.add('show');
 }
 
 function backToForm() {
   document.getElementById('form-panel').classList.remove('hide');
+  document.querySelector('.workspace')?.classList.remove('preview-mode');
   document.getElementById('preview-panel').classList.remove('show');
+  updateLivePreview();
 }
 
 function generatePDF() {

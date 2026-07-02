@@ -60,9 +60,6 @@
     gap: 1.25rem;
     align-items: start;
   }
-  .workspace.preview-mode { grid-template-columns: 1fr; }
-  .workspace.preview-mode .editor-column,
-  .workspace.preview-mode .live-preview { display: none; }
   .editor-column { min-width: 0; }
   .live-preview {
     position: sticky;
@@ -231,10 +228,6 @@
   .template-name { font-size: 12px; color: var(--text2); }
 
   /* Preview */
-  #preview-panel { display: none; }
-  #preview-panel.show { display: block; grid-column: 1 / -1; }
-  #form-panel.hide { display: none; }
-
   .preview-box {
     background: white; color: #222;
     font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
@@ -437,9 +430,6 @@
     </div>
 
     <div class="actions">
-      <button class="btn btn-secondary" onclick="previewDoc()">
-        <i class="ti ti-eye" aria-hidden="true"></i> 拡大プレビュー
-      </button>
       <button class="btn btn-primary" onclick="generatePDF()">
         <i class="ti ti-download" aria-hidden="true"></i> PDFを生成
       </button>
@@ -461,19 +451,6 @@
     </div>
     <div class="preview-box" id="live-preview-content"></div>
   </aside>
-
-  <!-- ===== PREVIEW PANEL ===== -->
-  <div id="preview-panel">
-    <div class="actions" style="margin-top:0;border-top:none;margin-bottom:1rem;padding-top:0">
-      <button class="btn btn-secondary" onclick="backToForm()">
-        <i class="ti ti-arrow-left" aria-hidden="true"></i> 編集に戻る
-      </button>
-      <button class="btn btn-primary" onclick="generatePDF()">
-        <i class="ti ti-download" aria-hidden="true"></i> PDFを生成
-      </button>
-    </div>
-    <div class="preview-box" id="preview-content"></div>
-  </div>
   </div>
 
 </div>
@@ -1093,21 +1070,6 @@ function improveText(targetTextarea) {
   textarea.focus();
   document.getElementById('status').innerHTML =
     '<i class="ti ti-sparkles"></i> AI接続は未実装です。今後API接続予定です。';
-}
-
-function previewDoc() {
-  const data = collectData();
-  document.getElementById('preview-content').innerHTML = buildHTML(data);
-  document.getElementById('form-panel').classList.add('hide');
-  document.querySelector('.workspace')?.classList.add('preview-mode');
-  document.getElementById('preview-panel').classList.add('show');
-}
-
-function backToForm() {
-  document.getElementById('form-panel').classList.remove('hide');
-  document.querySelector('.workspace')?.classList.remove('preview-mode');
-  document.getElementById('preview-panel').classList.remove('show');
-  updateLivePreview();
 }
 
 function generatePDF() {

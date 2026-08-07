@@ -184,6 +184,18 @@
     border-radius: var(--radius); transition: background .1s, color .1s;
   }
   .remove-btn:hover { background: var(--bg3); color: var(--text); }
+  .project-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+  .project-card {
+    background: #fff;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: .9rem;
+    position: relative;
+  }
+  .project-card .remove-btn {
+    top: 6px;
+    right: 6px;
+  }
 
   .add-btn {
     display: flex; align-items: center; gap: 6px;
@@ -555,17 +567,42 @@ function addWork(data = null) {
       <div class="field"><label>上場区分</label><input data-field="listing" placeholder="未上場"></div>
       <div class="field"><label>役職・職種</label><input data-field="role" placeholder="システムエンジニア / テックリード"></div>
       <div class="field"><label>在籍期間</label><input data-field="period" placeholder="2020年4月 〜 2024年3月"></div>
-      <div class="field span2"><label>案件名</label><input data-field="project" placeholder="業務システムの開発・運用"></div>
     </div>
+    <div class="section-title" style="margin-top:12px">プロジェクト</div>
+    <div class="project-list" data-project-list></div>
+    <button class="add-btn" onclick="addCareerProject(this.closest('.entry-card'))">
+      <i class="ti ti-plus" aria-hidden="true"></i> プロジェクトを追加
+    </button>`;
+  document.getElementById('work-list').appendChild(div);
+  if (data) {
+    setCareerWorkValues(div, data);
+  } else {
+    addCareerProject(div);
+  }
+  updateLivePreview();
+  saveDraft();
+}
+
+function addCareerProject(workContainer, data = null) {
+  const list = workContainer?.querySelector('[data-project-list]');
+  if (!list) return;
+  const project = document.createElement('div');
+  project.className = 'project-card';
+  project.innerHTML = `
+    <button class="remove-btn" onclick="removeCareerProject(this)" title="削除">
+      <i class="ti ti-x"></i>
+    </button>
     <div class="grid2" style="gap:10px;margin-bottom:10px">
+      <div class="field span2"><label>案件名</label><input data-project-field="project" placeholder="業務システムの開発・運用"></div>
       <div class="field"><label>プロジェクト概要</label>
-        <textarea data-field="projectOverview" rows="3" placeholder="社内業務を効率化するシステムの開発・改善&#10;既存機能の改修、問い合わせ対応、運用保守を担当"></textarea>
+        <textarea data-project-field="projectOverview" rows="3" placeholder="社内業務を効率化するシステムの開発・改善&#10;既存機能の改修、問い合わせ対応、運用保守を担当"></textarea>
       </div>
       <div class="field"><label>開発環境</label>
-        <textarea data-field="environment" rows="3" placeholder="【OS】&#10;Linux&#10;Windows&#10;&#10;【DB】&#10;Oracle&#10;SQL Server"></textarea>
+        <textarea data-project-field="environment" rows="3" placeholder="【OS】&#10;Linux&#10;Windows&#10;&#10;【DB】&#10;Oracle&#10;SQL Server"></textarea>
       </div>
-      <div class="field"><label>担当フェーズ</label><input data-field="phase" placeholder="開発、運用保守"></div>
-      <div class="field"><label>規模</label><input data-field="scale" placeholder="全3名 メンバー"></div>
+      <div class="field"><label>担当期間</label><input data-project-field="period" placeholder="2024年10月〜2025年3月"></div>
+      <div class="field"><label>担当フェーズ</label><input data-project-field="phase" placeholder="開発、運用保守"></div>
+      <div class="field"><label>規模</label><input data-project-field="scale" placeholder="全3名 メンバー"></div>
     </div>
     <div class="field">
       <div class="field-head">
@@ -574,10 +611,23 @@ function addWork(data = null) {
           <i class="ti ti-sparkles" aria-hidden="true"></i> AIで整える
         </button>
       </div>
-      <textarea data-field="desc" rows="3" placeholder="【業務内容】&#10;・要件整理、設計、実装、テスト&#10;・既存機能の改善、運用保守&#10;&#10;【実績・取り組み】&#10;・作業手順の見直しによる効率化&#10;・不具合調査と再発防止対応"></textarea>
+      <textarea data-project-field="desc" rows="3" placeholder="【業務内容】&#10;・要件整理、設計、実装、テスト&#10;・既存機能の改善、運用保守&#10;&#10;【実績・取り組み】&#10;・作業手順の見直しによる効率化&#10;・不具合調査と再発防止対応"></textarea>
     </div>`;
-  document.getElementById('work-list').appendChild(div);
-  if (data) setCareerWorkValues(div, data);
+  list.appendChild(project);
+  if (data) setCareerProjectValues(project, data);
+  updateLivePreview();
+  saveDraft();
+}
+
+function removeCareerProject(button) {
+  const project = button.closest('.project-card');
+  const list = project?.parentElement;
+  if (!project || !list || list.children.length <= 1) {
+    document.getElementById('status').innerHTML =
+      '<i class="ti ti-alert-circle"></i> プロジェクトは1件以上必要です。';
+    return;
+  }
+  project.remove();
   updateLivePreview();
   saveDraft();
 }
@@ -827,12 +877,10 @@ function setCareerWorkValues(container, data) {
   setWorkField(container, 'listing', data.listing);
   setWorkField(container, 'role', data.role);
   setWorkField(container, 'period', data.period);
-  setWorkField(container, 'project', data.project);
-  setWorkField(container, 'projectOverview', data.projectOverview);
-  setWorkField(container, 'environment', data.environment);
-  setWorkField(container, 'phase', data.phase);
-  setWorkField(container, 'scale', data.scale);
-  setWorkField(container, 'desc', data.desc);
+  const list = container.querySelector('[data-project-list]');
+  if (list) list.innerHTML = '';
+  const projects = normalizeCareerProjects(data);
+  projects.forEach(project => addCareerProject(container, project));
 }
 
 function setResumeWorkValues(container, data) {
@@ -854,6 +902,50 @@ function setWorkField(container, field, value) {
 
 function getWorkField(container, field) {
   return container.querySelector(`[data-field="${field}"]`)?.value || '';
+}
+
+function setCareerProjectValues(container, data) {
+  setProjectField(container, 'project', data.project);
+  setProjectField(container, 'projectOverview', data.projectOverview);
+  setProjectField(container, 'environment', data.environment);
+  setProjectField(container, 'period', data.period);
+  setProjectField(container, 'phase', data.phase);
+  setProjectField(container, 'scale', data.scale);
+  setProjectField(container, 'desc', data.desc);
+}
+
+function setProjectField(container, field, value) {
+  const el = container.querySelector(`[data-project-field="${field}"]`);
+  if (el) el.value = value || '';
+}
+
+function getProjectField(container, field) {
+  return container.querySelector(`[data-project-field="${field}"]`)?.value || '';
+}
+
+function collectCareerProjects(container) {
+  return [...container.querySelectorAll('.project-card')].map(project => ({
+    project: getProjectField(project, 'project'),
+    projectOverview: getProjectField(project, 'projectOverview'),
+    environment: getProjectField(project, 'environment'),
+    period: getProjectField(project, 'period'),
+    phase: getProjectField(project, 'phase'),
+    scale: getProjectField(project, 'scale'),
+    desc: getProjectField(project, 'desc')
+  }));
+}
+
+function normalizeCareerProjects(work) {
+  if (Array.isArray(work.projects) && work.projects.length) return work.projects;
+  return [{
+    project: work.project || '',
+    projectOverview: work.projectOverview || '',
+    environment: work.environment || '',
+    period: '',
+    phase: work.phase || '',
+    scale: work.scale || '',
+    desc: work.desc || ''
+  }];
 }
 
 function updateTemplateLabel(type) {
@@ -884,12 +976,7 @@ function collectData() {
       listing: getWorkField(c, 'listing'),
       role: getWorkField(c, 'role'),
       period: getWorkField(c, 'period'),
-      project: getWorkField(c, 'project'),
-      projectOverview: getWorkField(c, 'projectOverview'),
-      environment: getWorkField(c, 'environment'),
-      phase: getWorkField(c, 'phase'),
-      scale: getWorkField(c, 'scale'),
-      desc: getWorkField(c, 'desc')
+      projects: collectCareerProjects(c)
     };
   }).filter(Boolean);
 
@@ -993,22 +1080,17 @@ function renderPdfStyleCareer(data, today) {
 function renderCareerWorkTables(works) {
   const items = works.length ? works : [{
     company: '（会社名）', type: '', industry: '', capital: '', employees: '',
-    listing: '', period: '', project: '', projectOverview: '', phase: '',
-    environment: '', scale: '', desc: ''
+    listing: '', period: '', projects: []
   }];
 
   return items.map(w => {
+    const projects = normalizeCareerProjects(w);
     const companyLines = [
       `会社名：${w.company || '（会社名）'}`,
       `事業内容：${w.industry || ''}`,
       w.capital ? `資本金：${w.capital}` : '',
       [w.employees ? `従業員数：${w.employees}` : '', w.listing ? `上場：${w.listing}` : ''].filter(Boolean).join('　')
     ].filter(Boolean).join('\n');
-    const projectBody = [
-      formatCareerBlock('【プロジェクト概要】', w.projectOverview),
-      formatCareerBlock('【担当フェーズ】', w.phase),
-      formatCareerBlock('【業務内容・実績】', w.desc)
-    ].filter(Boolean).join('');
 
     return `
       <table class="career-work-table">
@@ -1016,19 +1098,30 @@ function renderCareerWorkTables(works) {
           <td colspan="3" class="career-company-info">${formatMultiline(companyLines)}</td>
           <td class="career-employment">${formatMultiline(employmentText(w.type))}</td>
         </tr>
+        ${projects.map(project => renderCareerProjectRows(w, project)).join('')}
+      </table>`;
+  }).join('');
+}
+
+function renderCareerProjectRows(work, project) {
+  const projectBody = [
+    formatCareerBlock('【プロジェクト概要】', project.projectOverview),
+    formatCareerBlock('【担当フェーズ】', project.phase),
+    formatCareerBlock('【業務内容・実績】', project.desc)
+  ].filter(Boolean).join('');
+
+  return `
         <tr class="career-header-row">
-          <td class="career-period">${esc(w.period)}</td>
-          <td>${esc(w.project || w.role || '')}</td>
+          <td class="career-period">${esc(project.period || work.period)}</td>
+          <td>${esc(project.project || work.role || '')}</td>
           <td class="career-env-head">開発環境</td>
           <td class="career-scale-head">規模</td>
         </tr>
         <tr>
           <td colspan="2" class="career-project-body">${projectBody || '<span style="color:#aaa">（未入力）</span>'}</td>
-          <td class="career-env-body">${formatMultiline(w.environment)}</td>
-          <td class="career-scale-body">${formatMultiline(w.scale)}</td>
-        </tr>
-      </table>`;
-  }).join('');
+          <td class="career-env-body">${formatMultiline(project.environment)}</td>
+          <td class="career-scale-body">${formatMultiline(project.scale)}</td>
+        </tr>`;
 }
 
 function formatCareerBlock(title, body) {
@@ -1091,6 +1184,7 @@ function renderDocumentTemplate(template, data, today, contacts, type) {
 
 function buildCareerReplacements(data, today, contacts) {
   const workItems = renderCareerWorkTables(data.works);
+  const firstProject = data.works[0]?.projects?.[0] || {};
 
   return {
     today,
@@ -1106,11 +1200,11 @@ function buildCareerReplacements(data, today, contacts) {
     skills: data.skills,
     capital: data.works[0]?.capital || '',
     listing: data.works[0]?.listing || '',
-    project: data.works[0]?.project || '',
-    projectOverview: data.works[0]?.projectOverview || '',
-    phase: data.works[0]?.phase || '',
-    environment: data.works[0]?.environment || '',
-    scale: data.works[0]?.scale || '',
+    project: firstProject.project || '',
+    projectOverview: firstProject.projectOverview || '',
+    phase: firstProject.phase || '',
+    environment: firstProject.environment || '',
+    scale: firstProject.scale || '',
     works: workItems
   };
 }

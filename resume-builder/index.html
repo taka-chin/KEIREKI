@@ -255,6 +255,52 @@
   .preview-box td { border: 0.5px solid #ccc; padding: 4px 8px; font-size: 12px; }
   .preview-box .tbl-head td { background: #f5f5f5; font-weight: 700; font-size: 11px; }
   .preview-box .footer-date { font-size: 11px; color: #aaa; text-align: right; margin-top: 16px; }
+  .career-work-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #777;
+    margin-bottom: 0;
+    page-break-inside: avoid;
+  }
+  .career-work-table + .career-work-table { margin-top: 10px; }
+  .career-work-table td {
+    border: 0.5px solid #aaa;
+    padding: 5px 8px;
+    vertical-align: top;
+    color: #111;
+  }
+  .career-work-table .career-company-row td {
+    border-top: 2px solid #111;
+  }
+  .career-work-table .career-header-row td {
+    background: #eee;
+    font-weight: 600;
+  }
+  .career-company-info {
+    white-space: pre-wrap;
+    line-height: 1.7;
+  }
+  .career-employment {
+    width: 13%;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 600;
+  }
+  .career-period { width: 24%; white-space: nowrap; }
+  .career-env-head { width: 13%; text-align: center; }
+  .career-scale-head { width: 13%; text-align: center; }
+  .career-project-body { min-height: 210px; white-space: pre-wrap; }
+  .career-env-body, .career-scale-body {
+    white-space: pre-wrap;
+    text-align: center;
+    vertical-align: middle;
+  }
+  .career-block-title {
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+  .career-block { margin-bottom: 14px; }
+  .career-block:last-child { margin-bottom: 0; }
   .pdf-career {
     color: #111;
     font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
@@ -498,15 +544,28 @@ function addWork(data = null) {
             <i class="ti ti-world-search" aria-hidden="true"></i> HP検索
           </button>
         </div>
-        <input placeholder="株式会社〇〇">
+        <input data-field="company" placeholder="株式会社〇〇">
       </div>
       <div class="field"><label>雇用形態</label>
-        <select><option>正社員</option><option>契約社員</option><option>派遣</option><option>業務委託</option><option>アルバイト</option></select>
+        <select data-field="type"><option>正社員</option><option>契約社員</option><option>派遣</option><option>業務委託</option><option>アルバイト</option></select>
       </div>
-      <div class="field"><label>業種</label><input placeholder="ITサービス / 商社 / 飲食業"></div>
-      <div class="field"><label>従業員数</label><input placeholder="100名"></div>
-      <div class="field"><label>役職・職種</label><input placeholder="システムエンジニア / テックリード"></div>
-      <div class="field"><label>在籍期間</label><input placeholder="2020年4月 〜 2024年3月"></div>
+      <div class="field"><label>事業内容</label><input data-field="industry" placeholder="福祉・介護機器の研究開発、設計、製造、販売"></div>
+      <div class="field"><label>資本金</label><input data-field="capital" placeholder="8千万円"></div>
+      <div class="field"><label>従業員数</label><input data-field="employees" placeholder="182人"></div>
+      <div class="field"><label>上場区分</label><input data-field="listing" placeholder="未上場"></div>
+      <div class="field"><label>役職・職種</label><input data-field="role" placeholder="システムエンジニア / テックリード"></div>
+      <div class="field"><label>在籍期間</label><input data-field="period" placeholder="2020年4月 〜 2024年3月"></div>
+      <div class="field span2"><label>案件名</label><input data-field="project" placeholder="販売管理システム、社内HP運用保守"></div>
+    </div>
+    <div class="grid2" style="gap:10px;margin-bottom:10px">
+      <div class="field"><label>プロジェクト概要</label>
+        <textarea data-field="projectOverview" rows="3" placeholder="製品を販売管理する社内システムの運用保守&#10;ブランディングに向けた帳票レイアウトの修正"></textarea>
+      </div>
+      <div class="field"><label>開発環境</label>
+        <textarea data-field="environment" rows="3" placeholder="【OS】&#10;Linux&#10;Windows&#10;&#10;【DB】&#10;Oracle&#10;SQL Server"></textarea>
+      </div>
+      <div class="field"><label>担当フェーズ</label><input data-field="phase" placeholder="開発、運用保守"></div>
+      <div class="field"><label>規模</label><input data-field="scale" placeholder="全3名 メンバー"></div>
     </div>
     <div class="field">
       <div class="field-head">
@@ -515,7 +574,7 @@ function addWork(data = null) {
           <i class="ti ti-sparkles" aria-hidden="true"></i> AIで整える
         </button>
       </div>
-      <textarea rows="3" placeholder="担当業務、使用技術、達成した成果などを記述してください"></textarea>
+      <textarea data-field="desc" rows="3" placeholder="【業務内容】&#10;・販売管理システム運用保守&#10;・社内HPの更新&#10;&#10;【実績・取り組み】&#10;・販売管理データのメンテナンス&#10;・帳票レイアウト変更"></textarea>
     </div>`;
   document.getElementById('work-list').appendChild(div);
   if (data) setCareerWorkValues(div, data);
@@ -760,14 +819,20 @@ function setValue(id, value) {
 }
 
 function setCareerWorkValues(container, data) {
-  const el = container.querySelectorAll('input,select,textarea');
-  el[0].value = data.company || '';
-  el[1].value = data.type || '正社員';
-  el[2].value = data.industry || '';
-  el[3].value = data.employees || '';
-  el[4].value = data.role || '';
-  el[5].value = data.period || '';
-  el[6].value = data.desc || '';
+  setWorkField(container, 'company', data.company);
+  setWorkField(container, 'type', data.type || '正社員');
+  setWorkField(container, 'industry', data.industry);
+  setWorkField(container, 'capital', data.capital);
+  setWorkField(container, 'employees', data.employees);
+  setWorkField(container, 'listing', data.listing);
+  setWorkField(container, 'role', data.role);
+  setWorkField(container, 'period', data.period);
+  setWorkField(container, 'project', data.project);
+  setWorkField(container, 'projectOverview', data.projectOverview);
+  setWorkField(container, 'environment', data.environment);
+  setWorkField(container, 'phase', data.phase);
+  setWorkField(container, 'scale', data.scale);
+  setWorkField(container, 'desc', data.desc);
 }
 
 function setResumeWorkValues(container, data) {
@@ -780,6 +845,15 @@ function setEducationValues(container, data) {
   const el = container.querySelectorAll('input');
   el[0].value = data.date || '';
   el[1].value = data.content || '';
+}
+
+function setWorkField(container, field, value) {
+  const el = container.querySelector(`[data-field="${field}"]`);
+  if (el) el.value = value || '';
+}
+
+function getWorkField(container, field) {
+  return container.querySelector(`[data-field="${field}"]`)?.value || '';
 }
 
 function updateTemplateLabel(type) {
@@ -801,10 +875,21 @@ function collectData() {
   const works = workIds.map(id => {
     const c = document.getElementById('work-' + id);
     if (!c) return null;
-    const el = c.querySelectorAll('input,select,textarea');
     return {
-      company: el[0].value, type: el[1].value, industry: el[2].value,
-      employees: el[3].value, role: el[4].value, period: el[5].value, desc: el[6].value
+      company: getWorkField(c, 'company'),
+      type: getWorkField(c, 'type'),
+      industry: getWorkField(c, 'industry'),
+      capital: getWorkField(c, 'capital'),
+      employees: getWorkField(c, 'employees'),
+      listing: getWorkField(c, 'listing'),
+      role: getWorkField(c, 'role'),
+      period: getWorkField(c, 'period'),
+      project: getWorkField(c, 'project'),
+      projectOverview: getWorkField(c, 'projectOverview'),
+      environment: getWorkField(c, 'environment'),
+      phase: getWorkField(c, 'phase'),
+      scale: getWorkField(c, 'scale'),
+      desc: getWorkField(c, 'desc')
     };
   }).filter(Boolean);
 
@@ -838,16 +923,7 @@ function buildHTML(data) {
     if (careerTemplateType === 'pdf') return renderPdfStyleCareer(data, today);
     if (careerTemplate) return renderDocumentTemplate(careerTemplate, data, today, contacts, 'career');
 
-    const workHTML = data.works.length
-      ? data.works.map(w => `
-          <div class="work-header">
-            <span class="work-co">${esc(w.company || '（会社名）')}</span>
-            <span class="work-period">${esc(w.period)}</span>
-          </div>
-          <div class="work-role">${[w.role, w.industry, w.type, w.employees].filter(Boolean).map(esc).join(' | ')}</div>
-          <div class="work-desc">${esc(w.desc)}</div>
-          <hr class="divider">`).join('')
-      : '<p style="color:#aaa;font-size:12px">（職歴未入力）</p>';
+    const workHTML = renderCareerWorkTables(data.works);
 
     return `
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -895,30 +971,6 @@ function buildHTML(data) {
 }
 
 function renderPdfStyleCareer(data, today) {
-  const works = data.works.length ? data.works : [{
-    company: '（会社名）', type: '', industry: '', employees: '', period: '', desc: ''
-  }];
-  const workTables = works.map(w => `
-    <table class="pdf-table" style="margin-bottom:0">
-      <tr><th colspan="4">職務経歴</th></tr>
-      <tr>
-        <td colspan="2" style="width:50%">期間：${esc(w.period)}</td>
-        <td colspan="2">会社名：${esc(w.company || '（会社名）')}</td>
-      </tr>
-      <tr>
-        <td colspan="2">業種：${esc(w.industry)}</td>
-        <td>雇用形態：${esc(w.type)}</td>
-        <td>従業員数：${esc(w.employees)}</td>
-      </tr>
-      <tr>
-        <td colspan="4">
-          ${w.role ? `<p style="margin-bottom:6px">役職・職種：${esc(w.role)}</p>` : ''}
-          <strong>【担当業務】</strong>
-          <div class="pdf-work-desc">${esc(w.desc)}</div>
-        </td>
-      </tr>
-    </table>`).join('');
-
   return `
     <div class="pdf-career">
       <section class="pdf-sheet">
@@ -927,17 +979,65 @@ function renderPdfStyleCareer(data, today) {
           <div>${today}</div>
           <div>${esc(data.name || '氏名未入力')}</div>
         </div>
-        ${workTables}
-      </section>
-      <section class="pdf-sheet">
         ${data.summary ? `
           <div class="pdf-section-title">職務要約</div>
           <div class="pdf-block">${esc(data.summary)}</div>` : ''}
+        ${renderCareerWorkTables(data.works)}
         ${data.skills ? `
           <div class="pdf-section-title">スキル・資格</div>
           <div class="pdf-block">${esc(data.skills)}</div>` : ''}
       </section>
     </div>`;
+}
+
+function renderCareerWorkTables(works) {
+  const items = works.length ? works : [{
+    company: '（会社名）', type: '', industry: '', capital: '', employees: '',
+    listing: '', period: '', project: '', projectOverview: '', phase: '',
+    environment: '', scale: '', desc: ''
+  }];
+
+  return items.map(w => {
+    const companyLines = [
+      `会社名：${w.company || '（会社名）'}`,
+      `事業内容：${w.industry || ''}`,
+      w.capital ? `資本金：${w.capital}` : '',
+      [w.employees ? `従業員数：${w.employees}` : '', w.listing ? `上場：${w.listing}` : ''].filter(Boolean).join('　')
+    ].filter(Boolean).join('\n');
+    const projectBody = [
+      formatCareerBlock('【プロジェクト概要】', w.projectOverview),
+      formatCareerBlock('【担当フェーズ】', w.phase),
+      formatCareerBlock('【業務内容・実績】', w.desc)
+    ].filter(Boolean).join('');
+
+    return `
+      <table class="career-work-table">
+        <tr class="career-company-row">
+          <td colspan="3" class="career-company-info">${formatMultiline(companyLines)}</td>
+          <td class="career-employment">${formatMultiline(employmentText(w.type))}</td>
+        </tr>
+        <tr class="career-header-row">
+          <td class="career-period">${esc(w.period)}</td>
+          <td>${esc(w.project || w.role || '')}</td>
+          <td class="career-env-head">開発環境</td>
+          <td class="career-scale-head">規模</td>
+        </tr>
+        <tr>
+          <td colspan="2" class="career-project-body">${projectBody || '<span style="color:#aaa">（未入力）</span>'}</td>
+          <td class="career-env-body">${formatMultiline(w.environment)}</td>
+          <td class="career-scale-body">${formatMultiline(w.scale)}</td>
+        </tr>
+      </table>`;
+  }).join('');
+}
+
+function formatCareerBlock(title, body) {
+  if (!body) return '';
+  return `<div class="career-block"><div class="career-block-title">${title}</div>${formatMultiline(body)}</div>`;
+}
+
+function employmentText(type) {
+  return type ? `${type}\nとして勤務` : '';
 }
 
 function renderPdfStyleResume(data, today, contacts) {
@@ -990,17 +1090,7 @@ function renderDocumentTemplate(template, data, today, contacts, type) {
 }
 
 function buildCareerReplacements(data, today, contacts) {
-  const workItems = data.works.length
-    ? data.works.map(w => `
-        <section class="template-work">
-          <div class="work-header">
-            <span class="work-co">${esc(w.company || '（会社名）')}</span>
-            <span class="work-period">${esc(w.period)}</span>
-          </div>
-          <div class="work-role">${[w.role, w.industry, w.type, w.employees].filter(Boolean).map(esc).join(' | ')}</div>
-          <div class="work-desc">${formatMultiline(w.desc)}</div>
-        </section>`).join('')
-    : '<p style="color:#aaa;font-size:12px">（職歴未入力）</p>';
+  const workItems = renderCareerWorkTables(data.works);
 
   return {
     today,
@@ -1014,6 +1104,13 @@ function buildCareerReplacements(data, today, contacts) {
     contacts,
     summary: data.summary,
     skills: data.skills,
+    capital: data.works[0]?.capital || '',
+    listing: data.works[0]?.listing || '',
+    project: data.works[0]?.project || '',
+    projectOverview: data.works[0]?.projectOverview || '',
+    phase: data.works[0]?.phase || '',
+    environment: data.works[0]?.environment || '',
+    scale: data.works[0]?.scale || '',
     works: workItems
   };
 }
@@ -1155,6 +1252,21 @@ function generatePDF() {
   .pdf-work-desc{white-space:pre-wrap;min-height:72px}
   .pdf-section-title{font-size:17px;font-weight:700;margin:0 0 12px;border-bottom:1px solid #111;padding-bottom:4px}
   .pdf-block{white-space:pre-wrap;font-size:14px;margin-bottom:28px}
+  .career-work-table{width:100%;border-collapse:collapse;border:1px solid #777;margin-bottom:0;page-break-inside:avoid}
+  .career-work-table+.career-work-table{margin-top:10px}
+  .career-work-table td{border:0.5px solid #aaa;padding:5px 8px;vertical-align:top;color:#111}
+  .career-work-table .career-company-row td{border-top:2px solid #111}
+  .career-work-table .career-header-row td{background:#eee;font-weight:600}
+  .career-company-info{white-space:pre-wrap;line-height:1.7}
+  .career-employment{width:13%;text-align:center;vertical-align:middle;font-weight:600}
+  .career-period{width:24%;white-space:nowrap}
+  .career-env-head{width:13%;text-align:center}
+  .career-scale-head{width:13%;text-align:center}
+  .career-project-body{min-height:210px;white-space:pre-wrap}
+  .career-env-body,.career-scale-body{white-space:pre-wrap;text-align:center;vertical-align:middle}
+  .career-block-title{font-weight:700;margin:0 0 4px}
+  .career-block{margin-bottom:14px}
+  .career-block:last-child{margin-bottom:0}
   @media print{body{padding:16px 24px}@page{margin:1.5cm}}
 </style>
 </head><body>${bodyHTML}</body></html>`;

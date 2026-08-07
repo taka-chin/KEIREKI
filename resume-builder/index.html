@@ -164,6 +164,10 @@
     padding: 4px 8px;
     font-size: 12px;
   }
+  .company-search-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
 
   .entry-card {
     background: #fbfcfe;
@@ -487,7 +491,15 @@ function addWork(data = null) {
       <i class="ti ti-x"></i>
     </button>
     <div class="grid2" style="gap:10px;margin-bottom:10px">
-      <div class="field"><label>会社名</label><input placeholder="株式会社〇〇"></div>
+      <div class="field">
+        <div class="field-head">
+          <label>会社名</label>
+          <button class="btn btn-secondary company-search-btn" onclick="searchCompanyWebsite(this.closest('.field').querySelector('input'))">
+            <i class="ti ti-world-search" aria-hidden="true"></i> HP検索
+          </button>
+        </div>
+        <input placeholder="株式会社〇〇">
+      </div>
       <div class="field"><label>雇用形態</label>
         <select><option>正社員</option><option>契約社員</option><option>派遣</option><option>業務委託</option><option>アルバイト</option></select>
       </div>
@@ -522,7 +534,15 @@ function addWork2(data = null) {
     </button>
     <div class="grid3" style="gap:10px">
       <div class="field"><label>年月</label><input placeholder="2020年4月"></div>
-      <div class="field span2"><label>会社名・内容</label><input placeholder="株式会社〇〇 入社"></div>
+      <div class="field span2">
+        <div class="field-head">
+          <label>会社名・内容</label>
+          <button class="btn btn-secondary company-search-btn" onclick="searchCompanyWebsite(this.closest('.field').querySelector('input'))">
+            <i class="ti ti-world-search" aria-hidden="true"></i> HP検索
+          </button>
+        </div>
+        <input placeholder="株式会社〇〇 入社">
+      </div>
     </div>`;
   document.getElementById('work-list2').appendChild(div);
   if (data) setResumeWorkValues(div, data);
@@ -1070,6 +1090,33 @@ function improveText(targetTextarea) {
   textarea.focus();
   document.getElementById('status').innerHTML =
     '<i class="ti ti-sparkles"></i> AI接続は未実装です。今後API接続予定です。';
+}
+
+function searchCompanyWebsite(targetInput) {
+  const input = typeof targetInput === 'string'
+    ? document.getElementById(targetInput)
+    : targetInput;
+  const company = normalizeCompanySearchText(input?.value || '');
+  if (!company) {
+    document.getElementById('status').innerHTML =
+      '<i class="ti ti-alert-circle"></i> 会社名を入力してから検索してください。';
+    input?.focus();
+    return;
+  }
+
+  const query = encodeURIComponent(`${company} 公式サイト`);
+  window.open(`https://www.google.com/search?q=${query}`, '_blank', 'noopener');
+  document.getElementById('status').innerHTML =
+    '<i class="ti ti-world-search"></i> 企業HPを検索しました。';
+}
+
+function normalizeCompanySearchText(text) {
+  return (text || '')
+    .replace(/（.*?）|\(.*?\)/g, ' ')
+    .replace(/\s*(入社|退社|退職|在籍中|現在に至る|出向|転籍).*$/g, '')
+    .replace(/[、，,。].*$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function generatePDF() {

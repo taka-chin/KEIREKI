@@ -267,6 +267,19 @@
   .preview-box td { border: 0.5px solid #ccc; padding: 4px 8px; font-size: 12px; }
   .preview-box .tbl-head td { background: #f5f5f5; font-weight: 700; font-size: 11px; }
   .preview-box .footer-date { font-size: 11px; color: #aaa; text-align: right; margin-top: 16px; }
+  .preview-edit-target {
+    position: relative;
+    background-color: rgba(37,99,235,0.12) !important;
+    box-shadow: inset 0 0 0 2px rgba(37,99,235,0.72);
+    animation: preview-edit-pulse 1.25s ease-in-out infinite;
+  }
+  .preview-box.preview-edit-target { box-shadow: inset 0 0 0 3px rgba(37,99,235,0.55); }
+  @keyframes preview-edit-pulse {
+    50% { background-color: rgba(37,99,235,0.22); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .preview-edit-target { animation: none; }
+  }
   .career-work-table {
     width: 100%;
     border-collapse: collapse;
@@ -822,8 +835,13 @@ function restoreDraft(draft) {
 }
 
 function initDraftPersistence() {
-  document.getElementById('form-panel').addEventListener('input', handleFormChange);
-  document.getElementById('form-panel').addEventListener('change', handleFormChange);
+  const formPanel = document.getElementById('form-panel');
+  formPanel.addEventListener('input', handleFormChange);
+  formPanel.addEventListener('change', handleFormChange);
+  formPanel.addEventListener('focusin', event => applyPreviewHighlight(event.target, true));
+  formPanel.addEventListener('focusout', event => {
+    if (!formPanel.contains(event.relatedTarget)) applyPreviewHighlight(null);
+  });
 
   const draft = loadDraft();
   if (draft) {
@@ -839,6 +857,59 @@ function initDraftPersistence() {
 function handleFormChange() {
   updateLivePreview();
   saveDraft();
+}
+
+function getCareerPreviewKey(field) {
+  if (!field || docType !== 'career') return '';
+
+  const idKeys = {
+    name: 'name',
+    'name-kana': 'name',
+    phone: 'contacts',
+    email: 'contacts',
+    address: 'contacts',
+    summary: 'summary',
+    skills: 'skills'
+  };
+  if (field.id && idKeys[field.id]) return idKeys[field.id];
+
+  const work = field.closest('.entry-card');
+  if (!work || !work.id.startsWith('work-')) return '';
+  const workIndex = [...document.querySelectorAll('#work-list > .entry-card')].indexOf(work);
+  if (workIndex < 0) return '';
+
+  const project = field.closest('.project-card');
+  if (project) {
+    const projectIndex = [...work.querySelectorAll('.project-card')].indexOf(project);
+    const projectField = field.dataset.projectField;
+    const target = ['project', 'period'].includes(projectField) ? 'header'
+      : projectField === 'environment' ? 'environment'
+      : projectField === 'scale' ? 'scale'
+      : 'body';
+    return `work-${workIndex}-project-${projectIndex}-${target}`;
+  }
+
+  const workField = field.dataset.field;
+  return ['role', 'period'].includes(workField)
+    ? `work-${workIndex}-project-header`
+    : `work-${workIndex}-company`;
+}
+
+function applyPreviewHighlight(field, shouldScroll = false) {
+  const preview = document.getElementById('live-preview-content');
+  if (!preview) return;
+  preview.querySelectorAll('.preview-edit-target').forEach(el => el.classList.remove('preview-edit-target'));
+  preview.classList.remove('preview-edit-target');
+
+  const key = getCareerPreviewKey(field);
+  if (!key) return;
+  const targets = [...preview.querySelectorAll('[data-preview-keys]')]
+    .filter(el => el.dataset.previewKeys.split(' ').includes(key));
+  const highlighted = targets.length ? targets : [preview];
+  highlighted.forEach(el => el.classList.add('preview-edit-target'));
+  if (shouldScroll && targets[0]) {
+    targets[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 }
 
 function clearDraft() {
@@ -859,6 +930,7 @@ function updateLivePreview() {
   const preview = document.getElementById('live-preview-content');
   if (!preview) return;
   preview.innerHTML = buildHTML(collectData());
+  applyPreviewHighlight(document.activeElement);
   const name = document.getElementById('live-preview-doc-name');
   if (name) name.textContent = docType === 'career' ? '職務経歴書' : '履歴書';
 }
@@ -1015,17 +1087,17 @@ function buildHTML(data) {
     return `
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
-          <h1>${esc(data.name || '氏名未入力')}</h1>
+          <h1 data-preview-keys="name">${esc(data.name || '氏名未入力')}</h1>
           ${data.nameKana ? `<div class="kana">${esc(data.nameKana)}</div>` : ''}
-          <div class="contacts">${contacts}</div>
+          <div class="contacts" data-preview-keys="contacts">${contacts}</div>
         </div>
         <div class="footer-date" style="margin-top:0">${today}</div>
       </div>
       <hr class="sec-hr">
-      ${data.summary ? `<div class="sec-title">職務要約</div><p style="font-size:12px;margin-bottom:8px;white-space:pre-wrap">${esc(data.summary)}</p>` : ''}
+      ${data.summary ? `<div data-preview-keys="summary"><div class="sec-title">職務要約</div><p style="font-size:12px;margin-bottom:8px;white-space:pre-wrap">${esc(data.summary)}</p></div>` : ''}
       <div class="sec-title">職務経歴</div>
       ${workHTML}
-      ${data.skills ? `<div class="sec-title" style="margin-top:10px">スキル・資格</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.skills)}</p>` : ''}`;
+      ${data.skills ? `<div data-preview-keys="skills"><div class="sec-title" style="margin-top:10px">スキル・資格</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.skills)}</p></div>` : ''}`;
   } else {
     if (resumeTemplateType === 'pdf') return renderPdfStyleResume(data, today, contacts);
     if (resumeTemplate) return renderDocumentTemplate(resumeTemplate, data, today, contacts, 'resume');
@@ -1062,17 +1134,17 @@ function renderPdfStyleCareer(data, today) {
     <div class="pdf-career">
       <section class="pdf-sheet">
         <div class="pdf-title">職務経歴書</div>
-        <div class="pdf-meta">
+        <div class="pdf-meta" data-preview-keys="name contacts">
           <div>${today}</div>
           <div>${esc(data.name || '氏名未入力')}</div>
         </div>
         ${data.summary ? `
-          <div class="pdf-section-title">職務要約</div>
-          <div class="pdf-block">${esc(data.summary)}</div>` : ''}
+          <div data-preview-keys="summary"><div class="pdf-section-title">職務要約</div>
+          <div class="pdf-block">${esc(data.summary)}</div></div>` : ''}
         ${renderCareerWorkTables(data.works)}
         ${data.skills ? `
-          <div class="pdf-section-title">スキル・資格</div>
-          <div class="pdf-block">${esc(data.skills)}</div>` : ''}
+          <div data-preview-keys="skills"><div class="pdf-section-title">スキル・資格</div>
+          <div class="pdf-block">${esc(data.skills)}</div></div>` : ''}
       </section>
     </div>`;
 }
@@ -1083,7 +1155,7 @@ function renderCareerWorkTables(works) {
     listing: '', period: '', projects: []
   }];
 
-  return items.map(w => {
+  return items.map((w, workIndex) => {
     const projects = normalizeCareerProjects(w);
     const companyLines = [
       `会社名：${w.company || '（会社名）'}`,
@@ -1095,15 +1167,15 @@ function renderCareerWorkTables(works) {
     return `
       <table class="career-work-table">
         <tr class="career-company-row">
-          <td colspan="3" class="career-company-info">${formatMultiline(companyLines)}</td>
-          <td class="career-employment">${formatMultiline(employmentText(w.type))}</td>
+          <td colspan="3" class="career-company-info" data-preview-keys="work-${workIndex}-company">${formatMultiline(companyLines)}</td>
+          <td class="career-employment" data-preview-keys="work-${workIndex}-company">${formatMultiline(employmentText(w.type))}</td>
         </tr>
-        ${projects.map(project => renderCareerProjectRows(w, project)).join('')}
+        ${projects.map((project, projectIndex) => renderCareerProjectRows(w, project, workIndex, projectIndex)).join('')}
       </table>`;
   }).join('');
 }
 
-function renderCareerProjectRows(work, project) {
+function renderCareerProjectRows(work, project, workIndex, projectIndex) {
   const projectBody = [
     formatCareerBlock('【プロジェクト概要】', project.projectOverview),
     formatCareerBlock('【担当フェーズ】', project.phase),
@@ -1112,15 +1184,15 @@ function renderCareerProjectRows(work, project) {
 
   return `
         <tr class="career-header-row">
-          <td class="career-period">${esc(project.period || work.period)}</td>
-          <td>${esc(project.project || work.role || '')}</td>
+          <td class="career-period" data-preview-keys="work-${workIndex}-project-header work-${workIndex}-project-${projectIndex}-header">${esc(project.period || work.period)}</td>
+          <td data-preview-keys="work-${workIndex}-project-header work-${workIndex}-project-${projectIndex}-header">${esc(project.project || work.role || '')}</td>
           <td class="career-env-head">開発環境</td>
           <td class="career-scale-head">規模</td>
         </tr>
         <tr>
-          <td colspan="2" class="career-project-body">${projectBody || '<span style="color:#aaa">（未入力）</span>'}</td>
-          <td class="career-env-body">${formatMultiline(project.environment)}</td>
-          <td class="career-scale-body">${formatMultiline(project.scale)}</td>
+          <td colspan="2" class="career-project-body" data-preview-keys="work-${workIndex}-project-${projectIndex}-body">${projectBody || '<span style="color:#aaa">（未入力）</span>'}</td>
+          <td class="career-env-body" data-preview-keys="work-${workIndex}-project-${projectIndex}-environment">${formatMultiline(project.environment)}</td>
+          <td class="career-scale-body" data-preview-keys="work-${workIndex}-project-${projectIndex}-scale">${formatMultiline(project.scale)}</td>
         </tr>`;
 }
 

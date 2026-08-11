@@ -585,6 +585,9 @@ function addWork(data = null) {
     <div class="project-list" data-project-list></div>
     <button class="add-btn" onclick="addCareerProject(this.closest('.entry-card'))">
       <i class="ti ti-plus" aria-hidden="true"></i> プロジェクトを追加
+    </button>
+    <button class="add-btn" onclick="removeCareerWork(this.closest('.entry-card'))" style="margin-top:8px">
+      <i class="ti ti-trash" aria-hidden="true"></i> 会社を削除
     </button>`;
   document.getElementById('work-list').appendChild(div);
   if (data) {
@@ -625,7 +628,10 @@ function addCareerProject(workContainer, data = null) {
         </button>
       </div>
       <textarea data-project-field="desc" rows="3" placeholder="【業務内容】&#10;・要件整理、設計、実装、テスト&#10;・既存機能の改善、運用保守&#10;&#10;【実績・取り組み】&#10;・作業手順の見直しによる効率化&#10;・不具合調査と再発防止対応"></textarea>
-    </div>`;
+    </div>
+    <button class="add-btn" onclick="removeCareerProject(this)" style="margin-top:10px">
+      <i class="ti ti-trash" aria-hidden="true"></i> プロジェクトを削除
+    </button>`;
   list.appendChild(project);
   if (data) setCareerProjectValues(project, data);
   updateLivePreview();
@@ -643,6 +649,12 @@ function removeCareerProject(button) {
   project.remove();
   updateLivePreview();
   saveDraft();
+}
+
+function removeCareerWork(workContainer) {
+  if (!workContainer?.id) return;
+  const id = Number(workContainer.id.replace('work-', ''));
+  removeEntry(workContainer.id, id, 'workIds');
 }
 
 function addWork2(data = null) {

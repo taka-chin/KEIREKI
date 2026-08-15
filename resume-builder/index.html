@@ -196,6 +196,19 @@
     top: 6px;
     right: 6px;
   }
+  .technical-skill-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+  .technical-skill-card {
+    background: #fff;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: .9rem;
+    position: relative;
+  }
+  .technical-skill-card .grid3 { padding-right: 28px; }
+  .technical-skill-card .remove-btn {
+    top: 6px;
+    right: 6px;
+  }
 
   .add-btn {
     display: flex; align-items: center; gap: 6px;
@@ -326,6 +339,31 @@
   }
   .career-block { margin-bottom: 14px; }
   .career-block:last-child { margin-bottom: 0; }
+  .technical-skills-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #777;
+    margin: 6px 0 12px;
+  }
+  .technical-skills-table th,
+  .technical-skills-table td {
+    border: 0.5px solid #aaa;
+    padding: 5px 8px;
+    vertical-align: top;
+    color: #111;
+  }
+  .technical-skills-table th {
+    background: #f3f3f3;
+    text-align: center;
+    font-weight: 700;
+  }
+  .technical-skills-table .technical-category {
+    width: 15%;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .technical-skills-table .technical-name { width: 28%; font-weight: 600; }
+  .technical-skills-table .technical-period { width: 16%; white-space: nowrap; }
   .pdf-career {
     color: #111;
     font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
@@ -444,9 +482,16 @@
 
       <div class="card">
         <div class="section-title">スキル・資格</div>
+        <div class="field" style="margin-bottom:12px">
+          <label>テクニカルスキル</label>
+          <div class="technical-skill-list" id="technical-skill-list"></div>
+          <button class="add-btn" onclick="addTechnicalSkill()">
+            <i class="ti ti-plus" aria-hidden="true"></i> スキルを追加
+          </button>
+        </div>
         <div class="field">
           <div class="field-head">
-            <label for="skills">本文</label>
+            <label for="skills">資格・補足</label>
             <button class="btn btn-secondary ai-btn" onclick="improveText('skills')">
               <i class="ti ti-sparkles" aria-hidden="true"></i> AIで整える
             </button>
@@ -666,6 +711,40 @@ function removeCareerWork(workContainer) {
   removeEntry(workContainer.id, id, 'workIds');
 }
 
+function addTechnicalSkill(data = null) {
+  const list = document.getElementById('technical-skill-list');
+  if (!list) return;
+  const item = document.createElement('div');
+  item.className = 'technical-skill-card';
+  item.innerHTML = `
+    <button class="remove-btn" onclick="removeTechnicalSkill(this)" title="削除">
+      <i class="ti ti-x"></i>
+    </button>
+    <div class="grid3" style="gap:10px">
+      <div class="field"><label>種類</label><input data-tech-skill-field="category" placeholder="OS / 言語 / DB"></div>
+      <div class="field"><label>スキル名</label><input data-tech-skill-field="name" placeholder="Linux / Java / PostgreSQL"></div>
+      <div class="field"><label>使用期間</label><input data-tech-skill-field="period" placeholder="3年4カ月"></div>
+      <div class="field span2"><label>レベル</label><textarea data-tech-skill-field="level" rows="2" placeholder="インストールから環境構築、設定、障害対応が可能"></textarea></div>
+    </div>`;
+  list.appendChild(item);
+  if (data) setTechnicalSkillValues(item, data);
+  updateLivePreview();
+  saveDraft();
+}
+
+function removeTechnicalSkill(button) {
+  const item = button.closest('.technical-skill-card');
+  const list = item?.parentElement;
+  if (!item || !list || list.children.length <= 1) {
+    document.getElementById('status').innerHTML =
+      '<i class="ti ti-alert-circle"></i> テクニカルスキルは1件以上入力欄を残します。';
+    return;
+  }
+  item.remove();
+  updateLivePreview();
+  saveDraft();
+}
+
 function addWork2(data = null) {
   const id = nextEntryId();
   workIds2.push(id);
@@ -833,6 +912,7 @@ function restoreDraft(draft) {
   setValue('motivation', draft.motivation);
 
   document.getElementById('work-list').innerHTML = '';
+  document.getElementById('technical-skill-list').innerHTML = '';
   document.getElementById('work-list2').innerHTML = '';
   document.getElementById('edu-list').innerHTML = '';
   workIds = [];
@@ -840,6 +920,8 @@ function restoreDraft(draft) {
   eduIds = [];
 
   (draft.works || []).forEach(work => addWork(work));
+  (draft.technicalSkills || []).forEach(skill => addTechnicalSkill(skill));
+  if (!document.querySelector('#technical-skill-list .technical-skill-card')) addTechnicalSkill();
   (draft.works2 || []).forEach(work => addWork2(work));
   (draft.edus || []).forEach(edu => addEdu(edu));
 
@@ -872,6 +954,7 @@ function initDraftPersistence() {
   }
 
   addWork();
+  addTechnicalSkill();
   updateLivePreview();
 }
 
@@ -893,6 +976,7 @@ function getCareerPreviewKey(field) {
     skills: 'skills'
   };
   if (field.id && idKeys[field.id]) return idKeys[field.id];
+  if (field.dataset.techSkillField) return 'technical-skills';
 
   const work = field.closest('.entry-card');
   if (!work || !work.id.startsWith('work-')) return '';
@@ -1018,6 +1102,33 @@ function getProjectField(container, field) {
   return container.querySelector(`[data-project-field="${field}"]`)?.value || '';
 }
 
+function setTechnicalSkillValues(container, data) {
+  setTechnicalSkillField(container, 'category', data.category);
+  setTechnicalSkillField(container, 'name', data.name);
+  setTechnicalSkillField(container, 'period', data.period);
+  setTechnicalSkillField(container, 'level', data.level);
+}
+
+function setTechnicalSkillField(container, field, value) {
+  const el = container.querySelector(`[data-tech-skill-field="${field}"]`);
+  if (el) el.value = value || '';
+}
+
+function getTechnicalSkillField(container, field) {
+  return container.querySelector(`[data-tech-skill-field="${field}"]`)?.value || '';
+}
+
+function collectTechnicalSkills() {
+  return [...document.querySelectorAll('#technical-skill-list .technical-skill-card')]
+    .map(item => ({
+      category: getTechnicalSkillField(item, 'category'),
+      name: getTechnicalSkillField(item, 'name'),
+      period: getTechnicalSkillField(item, 'period'),
+      level: getTechnicalSkillField(item, 'level')
+    }))
+    .filter(skill => skill.category || skill.name || skill.period || skill.level);
+}
+
 function collectCareerProjects(container) {
   return [...container.querySelectorAll('.project-card')].map(project => ({
     project: getProjectField(project, 'project'),
@@ -1117,6 +1228,7 @@ function collectData() {
     name: g('name'), nameKana: g('name-kana'), birthday: g('birthday'),
     phone: g('phone'), email: g('email'), address: g('address'),
     summary: g('summary'), skills: g('skills'), motivation: g('motivation'),
+    technicalSkills: collectTechnicalSkills(),
     works, works2, edus
   };
 }
@@ -1130,6 +1242,7 @@ function buildHTML(data) {
     if (careerTemplate) return renderDocumentTemplate(careerTemplate, data, today, contacts, 'career');
 
     const workHTML = renderCareerWorkTables(data.works);
+    const technicalSkillsHTML = renderTechnicalSkillsTable(data.technicalSkills);
 
     return `
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -1144,6 +1257,7 @@ function buildHTML(data) {
       ${data.summary ? `<div data-preview-keys="summary"><div class="sec-title">職務要約</div><p style="font-size:12px;margin-bottom:8px;white-space:pre-wrap">${esc(data.summary)}</p></div>` : ''}
       <div class="sec-title">職務経歴</div>
       ${workHTML}
+      ${technicalSkillsHTML ? `<div data-preview-keys="technical-skills"><div class="sec-title" style="margin-top:10px">テクニカルスキル</div>${technicalSkillsHTML}</div>` : ''}
       ${data.skills ? `<div data-preview-keys="skills"><div class="sec-title" style="margin-top:10px">スキル・資格</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.skills)}</p></div>` : ''}`;
   } else {
     if (resumeTemplateType === 'pdf') return renderPdfStyleResume(data, today, contacts);
@@ -1177,6 +1291,8 @@ function buildHTML(data) {
 }
 
 function renderPdfStyleCareer(data, today) {
+  const technicalSkillsHTML = renderTechnicalSkillsTable(data.technicalSkills);
+
   return `
     <div class="pdf-career">
       <section class="pdf-sheet">
@@ -1189,6 +1305,9 @@ function renderPdfStyleCareer(data, today) {
           <div data-preview-keys="summary"><div class="pdf-section-title">職務要約</div>
           <div class="pdf-block">${esc(data.summary)}</div></div>` : ''}
         ${renderCareerWorkTables(data.works)}
+        ${technicalSkillsHTML ? `
+          <div data-preview-keys="technical-skills"><div class="pdf-section-title">テクニカルスキル</div>
+          ${technicalSkillsHTML}</div>` : ''}
         ${data.skills ? `
           <div data-preview-keys="skills"><div class="pdf-section-title">スキル・資格</div>
           <div class="pdf-block">${esc(data.skills)}</div></div>` : ''}
@@ -1244,6 +1363,42 @@ function renderCareerProjectRows(work, project, workIndex, projectIndex) {
         </tr>`;
 }
 
+function renderTechnicalSkillsTable(skills = []) {
+  const items = skills.filter(skill => skill.category || skill.name || skill.period || skill.level);
+  if (!items.length) return '';
+
+  const categorySpans = items.map((skill, index) => {
+    const category = skill.category || 'その他';
+    if (index > 0 && (items[index - 1].category || 'その他') === category) return 0;
+    let span = 1;
+    while (items[index + span] && (items[index + span].category || 'その他') === category) span += 1;
+    return span;
+  });
+  const rows = items.map((skill, index) => {
+    const category = skill.category || 'その他';
+    const categoryCell = categorySpans[index] ? `<td class="technical-category" rowspan="${categorySpans[index]}">${esc(category)}</td>` : '';
+    return `
+      <tr>
+        ${categoryCell}
+        <td class="technical-name">${esc(skill.name)}</td>
+        <td class="technical-period">${esc(skill.period)}</td>
+        <td>${formatMultiline(skill.level)}</td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <table class="technical-skills-table">
+      <thead>
+        <tr>
+          <th colspan="2">種類</th>
+          <th>使用期間</th>
+          <th>レベル</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
 function formatCareerBlock(title, body) {
   if (!body) return '';
   return `<div class="career-block"><div class="career-block-title">${title}</div>${formatMultiline(body)}</div>`;
@@ -1297,13 +1452,14 @@ function renderDocumentTemplate(template, data, today, contacts, type) {
     : buildCareerReplacements(data, today, contacts);
 
   return template.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (_, key) => {
-    if (key === 'works' || key === 'education' || key === 'resumeWorks') return replacements[key] || '';
+    if (key === 'works' || key === 'technicalSkills' || key === 'education' || key === 'resumeWorks') return replacements[key] || '';
     return formatMultiline(replacements[key] || '');
   });
 }
 
 function buildCareerReplacements(data, today, contacts) {
   const workItems = renderCareerWorkTables(data.works);
+  const technicalSkills = renderTechnicalSkillsTable(data.technicalSkills);
   const firstProject = data.works[0]?.projects?.[0] || {};
 
   return {
@@ -1318,6 +1474,7 @@ function buildCareerReplacements(data, today, contacts) {
     contacts,
     summary: data.summary,
     skills: data.skills,
+    technicalSkills,
     capital: data.works[0]?.capital || '',
     listing: data.works[0]?.listing || '',
     project: firstProject.project || '',

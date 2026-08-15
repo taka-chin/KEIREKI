@@ -617,17 +617,26 @@ function addCareerProject(workContainer, data = null) {
         <textarea data-project-field="environment" rows="3" placeholder="【OS】&#10;Linux&#10;Windows&#10;&#10;【DB】&#10;Oracle&#10;SQL Server"></textarea>
       </div>
       <div class="field"><label>担当期間</label><input data-project-field="period" placeholder="2024年10月〜2025年3月"></div>
-      <div class="field"><label>担当フェーズ</label><input data-project-field="phase" placeholder="開発、運用保守"></div>
+      <div class="field"><label>担当フェーズ</label><input data-project-field="phase" placeholder="要件定義、設計、開発、テスト、運用保守"></div>
       <div class="field"><label>規模</label><input data-project-field="scale" placeholder="全3名 メンバー"></div>
-    </div>
-    <div class="field">
-      <div class="field-head">
-        <label>業務内容・実績</label>
-        <button class="btn btn-secondary ai-btn" onclick="improveText(this.closest('.field').querySelector('textarea'))">
-          <i class="ti ti-sparkles" aria-hidden="true"></i> AIで整える
-        </button>
+      <div class="field">
+        <div class="field-head">
+          <label>業務内容</label>
+          <button class="btn btn-secondary ai-btn" onclick="improveText(this.closest('.field').querySelector('textarea'))">
+            <i class="ti ti-sparkles" aria-hidden="true"></i> AIで整える
+          </button>
+        </div>
+        <textarea data-project-field="tasks" rows="3" placeholder="・要件整理、設計、実装、テスト&#10;・既存機能の改善、運用保守"></textarea>
       </div>
-      <textarea data-project-field="desc" rows="3" placeholder="【業務内容】&#10;・要件整理、設計、実装、テスト&#10;・既存機能の改善、運用保守&#10;&#10;【実績・取り組み】&#10;・作業手順の見直しによる効率化&#10;・不具合調査と再発防止対応"></textarea>
+      <div class="field">
+        <div class="field-head">
+          <label>実績</label>
+          <button class="btn btn-secondary ai-btn" onclick="improveText(this.closest('.field').querySelector('textarea'))">
+            <i class="ti ti-sparkles" aria-hidden="true"></i> AIで整える
+          </button>
+        </div>
+        <textarea data-project-field="achievements" rows="3" placeholder="・作業手順の見直しによる効率化&#10;・不具合調査と再発防止対応"></textarea>
+      </div>
     </div>
     <button class="add-btn" onclick="removeCareerProject(this)" style="margin-top:10px">
       <i class="ti ti-trash" aria-hidden="true"></i> プロジェクトを削除
@@ -989,13 +998,15 @@ function getWorkField(container, field) {
 }
 
 function setCareerProjectValues(container, data) {
+  const separated = separateProjectDescription(data);
   setProjectField(container, 'project', data.project);
   setProjectField(container, 'projectOverview', data.projectOverview);
   setProjectField(container, 'environment', data.environment);
   setProjectField(container, 'period', data.period);
   setProjectField(container, 'phase', data.phase);
   setProjectField(container, 'scale', data.scale);
-  setProjectField(container, 'desc', data.desc);
+  setProjectField(container, 'tasks', separated.tasks);
+  setProjectField(container, 'achievements', separated.achievements);
 }
 
 function setProjectField(container, field, value) {
@@ -1015,12 +1026,19 @@ function collectCareerProjects(container) {
     period: getProjectField(project, 'period'),
     phase: getProjectField(project, 'phase'),
     scale: getProjectField(project, 'scale'),
-    desc: getProjectField(project, 'desc')
+    tasks: getProjectField(project, 'tasks'),
+    achievements: getProjectField(project, 'achievements')
   }));
 }
 
 function normalizeCareerProjects(work) {
-  if (Array.isArray(work.projects) && work.projects.length) return work.projects;
+  if (Array.isArray(work.projects) && work.projects.length) {
+    return work.projects.map(project => ({
+      ...project,
+      ...separateProjectDescription(project)
+    }));
+  }
+  const separated = separateProjectDescription(work);
   return [{
     project: work.project || '',
     projectOverview: work.projectOverview || '',
@@ -1028,8 +1046,25 @@ function normalizeCareerProjects(work) {
     period: '',
     phase: work.phase || '',
     scale: work.scale || '',
-    desc: work.desc || ''
+    tasks: separated.tasks,
+    achievements: separated.achievements
   }];
+}
+
+function separateProjectDescription(data = {}) {
+  const tasks = data.tasks || '';
+  const achievements = data.achievements || '';
+  if (tasks || achievements) return { tasks, achievements };
+
+  const desc = data.desc || '';
+  if (!desc) return { tasks: '', achievements: '' };
+
+  const taskMatch = desc.match(/(?:【業務内容】|\[業務内容\])([\s\S]*?)(?=(?:【実績(?:・取り組み)?】|\[実績(?:・取り組み)?\])|$)/);
+  const achievementMatch = desc.match(/(?:【実績(?:・取り組み)?】|\[実績(?:・取り組み)?\])([\s\S]*)/);
+  return {
+    tasks: (taskMatch ? taskMatch[1] : desc).trim(),
+    achievements: (achievementMatch ? achievementMatch[1] : '').trim()
+  };
 }
 
 function updateTemplateLabel(type) {
@@ -1191,7 +1226,8 @@ function renderCareerProjectRows(work, project, workIndex, projectIndex) {
   const projectBody = [
     formatCareerBlock('【プロジェクト概要】', project.projectOverview),
     formatCareerBlock('【担当フェーズ】', project.phase),
-    formatCareerBlock('【業務内容・実績】', project.desc)
+    formatCareerBlock('【業務内容】', project.tasks),
+    formatCareerBlock('【実績】', project.achievements)
   ].filter(Boolean).join('');
 
   return `
@@ -1287,6 +1323,8 @@ function buildCareerReplacements(data, today, contacts) {
     project: firstProject.project || '',
     projectOverview: firstProject.projectOverview || '',
     phase: firstProject.phase || '',
+    tasks: firstProject.tasks || '',
+    achievements: firstProject.achievements || '',
     environment: firstProject.environment || '',
     scale: firstProject.scale || '',
     works: workItems

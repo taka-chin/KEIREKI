@@ -485,6 +485,9 @@
         <div class="field" style="margin-bottom:12px">
           <label>テクニカルスキル</label>
           <div class="technical-skill-list" id="technical-skill-list"></div>
+          <button class="add-btn" onclick="generateTechnicalSkillsFromProjects()">
+            <i class="ti ti-wand" aria-hidden="true"></i> プロジェクトから自動作成
+          </button>
           <button class="add-btn" onclick="addTechnicalSkill()">
             <i class="ti ti-plus" aria-hidden="true"></i> スキルを追加
           </button>
@@ -743,6 +746,142 @@ function removeTechnicalSkill(button) {
   item.remove();
   updateLivePreview();
   saveDraft();
+}
+
+function generateTechnicalSkillsFromProjects() {
+  const generated = buildTechnicalSkillsFromProjects(collectData().works);
+  if (!generated.length) {
+    document.getElementById('status').innerHTML =
+      '<i class="ti ti-alert-circle"></i> 開発環境と担当期間を入力すると自動作成できます。';
+    return;
+  }
+
+  const merged = mergeTechnicalSkills(collectTechnicalSkills(), generated);
+  const list = document.getElementById('technical-skill-list');
+  list.innerHTML = '';
+  merged.forEach(skill => addTechnicalSkill(skill));
+  if (!merged.length) addTechnicalSkill();
+  document.getElementById('status').innerHTML =
+    `<i class="ti ti-check"></i> テクニカルスキルを${generated.length}件作成しました。`;
+  updateLivePreview();
+  saveDraft();
+}
+
+function buildTechnicalSkillsFromProjects(works = []) {
+  const skillMap = new Map();
+  works.forEach(work => {
+    normalizeCareerProjects(work).forEach(project => {
+      const months = parseProjectPeriodMonths(project.period || work.period || '');
+      extractEnvironmentSkills(project.environment).forEach(skill => {
+        const key = `${skill.category}\n${skill.name}`.toLowerCase();
+        const current = skillMap.get(key) || { ...skill, months: 0 };
+        current.months += months || 0;
+        skillMap.set(key, current);
+      });
+    });
+  });
+
+  return [...skillMap.values()].map(skill => ({
+    category: skill.category,
+    name: skill.name,
+    period: formatSkillPeriod(skill.months),
+    level: defaultSkillLevel(skill.category)
+  }));
+}
+
+function extractEnvironmentSkills(environment = '') {
+  const skills = [];
+  let category = 'その他';
+  environment.split(/\r?\n/).forEach(rawLine => {
+    let line = rawLine.trim();
+    if (!line) return;
+
+    const categoryOnly = line.match(/^【(.+?)】$/) || line.match(/^\[(.+?)\]$/);
+    if (categoryOnly) {
+      category = normalizeSkillCategory(categoryOnly[1]);
+      return;
+    }
+
+    const categoryWithValue = line.match(/^【(.+?)】\s*(.+)$/) || line.match(/^\[(.+?)\]\s*(.+)$/) || line.match(/^([^:：]+)[:：]\s*(.+)$/);
+    if (categoryWithValue) {
+      category = normalizeSkillCategory(categoryWithValue[1]);
+      line = categoryWithValue[2].trim();
+    }
+
+    splitSkillNames(line).forEach(name => {
+      if (name) skills.push({ category, name });
+    });
+  });
+  return skills;
+}
+
+function splitSkillNames(line) {
+  return line
+    .replace(/^[・\-*]\s*/, '')
+    .split(/[、,／/;；]+/)
+    .map(name => name.trim())
+    .filter(Boolean);
+}
+
+function normalizeSkillCategory(category = '') {
+  const text = category.trim();
+  const upper = text.toUpperCase();
+  if (['OS', 'DB'].includes(upper)) return upper;
+  if (text.includes('言語') || upper === 'LANGUAGE') return '言語';
+  if (text.includes('フレームワーク') || upper === 'FW') return 'FW';
+  if (text.includes('クラウド') || upper === 'CLOUD') return 'クラウド';
+  if (text.includes('ツール') || upper === 'TOOL') return 'ツール';
+  return text || 'その他';
+}
+
+function parseProjectPeriodMonths(period = '') {
+  const dates = [...period.matchAll(/(\d{4})\s*(?:年|[\/.-])\s*(\d{1,2})\s*(?:月)?/g)]
+    .map(match => ({ year: Number(match[1]), month: Number(match[2]) }));
+  if (dates.length < 2) {
+    if (!dates.length || !/(現在|在籍中|継続中|present|now)/i.test(period)) return 0;
+    const today = new Date();
+    dates.push({ year: today.getFullYear(), month: today.getMonth() + 1 });
+  }
+  const start = dates[0];
+  const end = dates[1];
+  const months = (end.year - start.year) * 12 + (end.month - start.month);
+  return Math.max(months, 0);
+}
+
+function formatSkillPeriod(months) {
+  if (!months) return '';
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  if (years && rest) return `${years}年${rest}カ月`;
+  if (years) return `${years}年`;
+  return `${rest}カ月`;
+}
+
+function defaultSkillLevel(category = '') {
+  if (category === 'OS') return 'インストールから環境構築、設定、障害対応が可能';
+  if (category === 'DB') return 'テーブル作成、基本的なSQL操作、調査対応が可能';
+  if (category === '言語') return 'フレームワークやライブラリを用いた開発が可能';
+  if (category === 'FW') return '基本的な設計、実装、保守が可能';
+  if (category === 'クラウド') return '基本的な環境構築、運用、調査対応が可能';
+  if (category === 'ツール') return '開発、運用、チーム作業で利用可能';
+  return '業務での利用経験あり';
+}
+
+function mergeTechnicalSkills(existing, generated) {
+  const result = existing.filter(skill => skill.category || skill.name || skill.period || skill.level);
+  generated.forEach(skill => {
+    const match = result.find(item =>
+      item.category.trim().toLowerCase() === skill.category.trim().toLowerCase() &&
+      item.name.trim().toLowerCase() === skill.name.trim().toLowerCase()
+    );
+    if (match) {
+      match.period = skill.period || match.period;
+      if (!match.level) match.level = skill.level;
+      return;
+    }
+    result.push(skill);
+  });
+  return result;
 }
 
 function addWork2(data = null) {

@@ -309,9 +309,18 @@
     border-collapse: collapse;
     border: 1px solid #777;
     margin-bottom: 0;
-    page-break-inside: avoid;
   }
   .career-work-table + .career-work-table { margin-top: 10px; }
+  .career-company-group,
+  .career-project-group,
+  .document-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .career-project-group {
+    break-before: auto;
+    page-break-before: auto;
+  }
   .career-work-table td {
     border: 0.5px solid #aaa;
     padding: 5px 8px;
@@ -375,6 +384,11 @@
   }
   .technical-skills-table .technical-name { width: 28%; font-weight: 600; }
   .technical-skills-table .technical-period { width: 16%; white-space: nowrap; }
+  .technical-skills-table thead { display: table-header-group; }
+  .technical-skills-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
   .pdf-career {
     color: #111;
     font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
@@ -1457,12 +1471,12 @@ function buildHTML(data) {
         <div class="footer-date" style="margin-top:0">${today}</div>
       </div>
       <hr class="sec-hr">
-      ${data.summary ? `<div data-preview-keys="summary"><div class="sec-title">職務要約</div><p style="font-size:12px;margin-bottom:8px;white-space:pre-wrap">${esc(data.summary)}</p></div>` : ''}
+      ${data.summary ? `<div class="document-section" data-preview-keys="summary"><div class="sec-title">職務要約</div><p style="font-size:12px;margin-bottom:8px;white-space:pre-wrap">${esc(data.summary)}</p></div>` : ''}
       <div class="sec-title">職務経歴</div>
       ${workHTML}
-      ${technicalSkillsHTML ? `<div data-preview-keys="technical-skills"><div class="sec-title" style="margin-top:10px">テクニカルスキル</div>${technicalSkillsHTML}</div>` : ''}
-      ${data.skills ? `<div data-preview-keys="skills"><div class="sec-title" style="margin-top:10px">スキル・資格</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.skills)}</p></div>` : ''}
-      ${data.careerPr ? `<div data-preview-keys="career-pr"><div class="sec-title" style="margin-top:10px">自己PR</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.careerPr)}</p></div>` : ''}`;
+      ${technicalSkillsHTML ? `<div class="document-section" data-preview-keys="technical-skills"><div class="sec-title" style="margin-top:10px">テクニカルスキル</div>${technicalSkillsHTML}</div>` : ''}
+      ${data.skills ? `<div class="document-section" data-preview-keys="skills"><div class="sec-title" style="margin-top:10px">スキル・資格</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.skills)}</p></div>` : ''}
+      ${data.careerPr ? `<div class="document-section" data-preview-keys="career-pr"><div class="sec-title" style="margin-top:10px">自己PR</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.careerPr)}</p></div>` : ''}`;
   } else {
     if (resumeTemplateType === 'pdf') return renderPdfStyleResume(data, today, contacts);
     if (resumeTemplate) return renderDocumentTemplate(resumeTemplate, data, today, contacts, 'resume');
@@ -1506,17 +1520,17 @@ function renderPdfStyleCareer(data, today) {
           <div>${esc(data.name || '氏名未入力')}</div>
         </div>
         ${data.summary ? `
-          <div data-preview-keys="summary"><div class="pdf-section-title">職務要約</div>
+          <div class="document-section" data-preview-keys="summary"><div class="pdf-section-title">職務要約</div>
           <div class="pdf-block">${esc(data.summary)}</div></div>` : ''}
         ${renderCareerWorkTables(data.works)}
         ${technicalSkillsHTML ? `
-          <div data-preview-keys="technical-skills"><div class="pdf-section-title">テクニカルスキル</div>
+          <div class="document-section" data-preview-keys="technical-skills"><div class="pdf-section-title">テクニカルスキル</div>
           ${technicalSkillsHTML}</div>` : ''}
         ${data.skills ? `
-          <div data-preview-keys="skills"><div class="pdf-section-title">スキル・資格</div>
+          <div class="document-section" data-preview-keys="skills"><div class="pdf-section-title">スキル・資格</div>
           <div class="pdf-block">${esc(data.skills)}</div></div>` : ''}
         ${data.careerPr ? `
-          <div data-preview-keys="career-pr"><div class="pdf-section-title">自己PR</div>
+          <div class="document-section" data-preview-keys="career-pr"><div class="pdf-section-title">自己PR</div>
           <div class="pdf-block">${esc(data.careerPr)}</div></div>` : ''}
       </section>
     </div>`;
@@ -1539,10 +1553,12 @@ function renderCareerWorkTables(works) {
 
     return `
       <table class="career-work-table">
-        <tr class="career-company-row">
-          <td colspan="3" class="career-company-info" data-preview-keys="work-${workIndex}-company">${formatMultiline(companyLines)}</td>
-          <td class="career-employment" data-preview-keys="work-${workIndex}-company">${formatMultiline(employmentText(w.type))}</td>
-        </tr>
+        <tbody class="career-company-group">
+          <tr class="career-company-row">
+            <td colspan="3" class="career-company-info" data-preview-keys="work-${workIndex}-company">${formatMultiline(companyLines)}</td>
+            <td class="career-employment" data-preview-keys="work-${workIndex}-company">${formatMultiline(employmentText(w.type))}</td>
+          </tr>
+        </tbody>
         ${projects.map((project, projectIndex) => renderCareerProjectRows(w, project, workIndex, projectIndex)).join('')}
       </table>`;
   }).join('');
@@ -1557,6 +1573,7 @@ function renderCareerProjectRows(work, project, workIndex, projectIndex) {
   ].filter(Boolean).join('');
 
   return `
+      <tbody class="career-project-group">
         <tr class="career-header-row">
           <td class="career-period" data-preview-keys="work-${workIndex}-project-header work-${workIndex}-project-${projectIndex}-header">${esc(project.period || work.period)}</td>
           <td data-preview-keys="work-${workIndex}-project-header work-${workIndex}-project-${projectIndex}-header">${esc(project.project || work.role || '')}</td>
@@ -1567,7 +1584,8 @@ function renderCareerProjectRows(work, project, workIndex, projectIndex) {
           <td colspan="2" class="career-project-body" data-preview-keys="work-${workIndex}-project-${projectIndex}-body">${projectBody || '<span style="color:#aaa">（未入力）</span>'}</td>
           <td class="career-env-body" data-preview-keys="work-${workIndex}-project-${projectIndex}-environment">${formatMultiline(project.environment)}</td>
           <td class="career-scale-body" data-preview-keys="work-${workIndex}-project-${projectIndex}-scale">${formatMultiline(project.scale)}</td>
-        </tr>`;
+        </tr>
+      </tbody>`;
 }
 
 function renderTechnicalSkillsTable(skills = []) {
@@ -1840,6 +1858,8 @@ function buildExportHTML() {
   .pdf-block{white-space:pre-wrap;font-size:14px;margin-bottom:28px}
   .career-work-table{width:100%;border-collapse:collapse;border:1px solid #777;margin-bottom:0}
   .career-work-table+.career-work-table{margin-top:10px}
+  .career-company-group,.career-project-group,.document-section{break-inside:avoid;page-break-inside:avoid}
+  .career-project-group{break-before:auto;page-break-before:auto}
   .career-work-table td{border:0.5px solid #aaa;padding:5px 8px;vertical-align:top;color:#111}
   .career-work-table .career-company-row td{border-top:2px solid #111}
   .career-work-table .career-header-row td{background:#eee;font-weight:600}
@@ -1859,8 +1879,9 @@ function buildExportHTML() {
   .technical-skills-table .technical-category{width:15%;font-weight:700;white-space:nowrap}
   .technical-skills-table .technical-name{width:28%;font-weight:600}
   .technical-skills-table .technical-period{width:16%;white-space:nowrap}
-  tr,.career-block{break-inside:avoid;page-break-inside:avoid}
-  @media print{body{padding:0;max-width:none}@page{size:A4;margin:12mm}}
+  .technical-skills-table thead{display:table-header-group}
+  tr,.career-block,.technical-skills-table tr{break-inside:avoid;page-break-inside:avoid}
+  @media print{body{padding:0;max-width:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:12mm}}
 </style>
 </head><body>${bodyHTML}</body></html>`
   };

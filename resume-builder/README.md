@@ -75,6 +75,7 @@ HTML または TXT テンプレートでは以下のプレースホルダーを�
 {{works}}
 {{technicalSkills}}
 {{skills}}
+{{careerPr}}
 ```
 
 履歴書では以下も使用できます。
@@ -95,6 +96,7 @@ HTML または TXT テンプレートでは以下のプレースホルダーを�
 <section>{{works}}</section>
 <section>{{technicalSkills}}</section>
 <section>{{skills}}</section>
+<section>{{careerPr}}</section>
 ```
 
 ### AI文章修正

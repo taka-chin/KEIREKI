@@ -513,6 +513,19 @@
           <textarea id="skills" rows="3" placeholder="例）Python・Java・AWS・プロジェクト管理・PMP取得 など"></textarea>
         </div>
       </div>
+
+      <div class="card">
+        <div class="section-title">自己PR</div>
+        <div class="field">
+          <div class="field-head">
+            <label for="career-pr">本文</label>
+            <button class="btn btn-secondary ai-btn" onclick="improveText('career-pr')">
+              <i class="ti ti-sparkles" aria-hidden="true"></i> AIで整える
+            </button>
+          </div>
+          <textarea id="career-pr" rows="4" placeholder="業務で意識してきたこと、強み、改善への取り組みなどを記入してください"></textarea>
+        </div>
+      </div>
     </div>
 
     <!-- 履歴書フィールド -->
@@ -1094,6 +1107,7 @@ function restoreDraft(draft) {
   setValue('address', draft.address);
   setValue('summary', draft.summary);
   setValue('skills', draft.skills);
+  setValue('career-pr', draft.careerPr);
   setValue('motivation', draft.motivation);
 
   document.getElementById('work-list').innerHTML = '';
@@ -1158,7 +1172,8 @@ function getCareerPreviewKey(field) {
     email: 'contacts',
     address: 'contacts',
     summary: 'summary',
-    skills: 'skills'
+    skills: 'skills',
+    'career-pr': 'career-pr'
   };
   if (field.id && idKeys[field.id]) return idKeys[field.id];
   if (field.dataset.techSkillField) return 'technical-skills';
@@ -1412,7 +1427,7 @@ function collectData() {
   return {
     name: g('name'), nameKana: g('name-kana'), birthday: g('birthday'),
     phone: g('phone'), email: g('email'), address: g('address'),
-    summary: g('summary'), skills: g('skills'), motivation: g('motivation'),
+    summary: g('summary'), skills: g('skills'), careerPr: g('career-pr'), motivation: g('motivation'),
     technicalSkills: collectTechnicalSkills(),
     works, works2, edus
   };
@@ -1443,7 +1458,8 @@ function buildHTML(data) {
       <div class="sec-title">職務経歴</div>
       ${workHTML}
       ${technicalSkillsHTML ? `<div data-preview-keys="technical-skills"><div class="sec-title" style="margin-top:10px">テクニカルスキル</div>${technicalSkillsHTML}</div>` : ''}
-      ${data.skills ? `<div data-preview-keys="skills"><div class="sec-title" style="margin-top:10px">スキル・資格</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.skills)}</p></div>` : ''}`;
+      ${data.skills ? `<div data-preview-keys="skills"><div class="sec-title" style="margin-top:10px">スキル・資格</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.skills)}</p></div>` : ''}
+      ${data.careerPr ? `<div data-preview-keys="career-pr"><div class="sec-title" style="margin-top:10px">自己PR</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.careerPr)}</p></div>` : ''}`;
   } else {
     if (resumeTemplateType === 'pdf') return renderPdfStyleResume(data, today, contacts);
     if (resumeTemplate) return renderDocumentTemplate(resumeTemplate, data, today, contacts, 'resume');
@@ -1496,6 +1512,9 @@ function renderPdfStyleCareer(data, today) {
         ${data.skills ? `
           <div data-preview-keys="skills"><div class="pdf-section-title">スキル・資格</div>
           <div class="pdf-block">${esc(data.skills)}</div></div>` : ''}
+        ${data.careerPr ? `
+          <div data-preview-keys="career-pr"><div class="pdf-section-title">自己PR</div>
+          <div class="pdf-block">${esc(data.careerPr)}</div></div>` : ''}
       </section>
     </div>`;
 }
@@ -1661,6 +1680,7 @@ function buildCareerReplacements(data, today, contacts) {
     contacts,
     summary: data.summary,
     skills: data.skills,
+    careerPr: data.careerPr,
     technicalSkills,
     capital: data.works[0]?.capital || '',
     listing: data.works[0]?.listing || '',

@@ -209,6 +209,17 @@
     top: 6px;
     right: 6px;
   }
+  .technical-skill-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .technical-skill-actions .btn {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
 
   .add-btn {
     display: flex; align-items: center; gap: 6px;
@@ -728,11 +739,35 @@ function addTechnicalSkill(data = null) {
       <div class="field"><label>スキル名</label><input data-tech-skill-field="name" placeholder="Linux / Java / PostgreSQL"></div>
       <div class="field"><label>使用期間</label><input data-tech-skill-field="period" placeholder="3年4カ月"></div>
       <div class="field span2"><label>レベル</label><textarea data-tech-skill-field="level" rows="2" placeholder="インストールから環境構築、設定、障害対応が可能"></textarea></div>
+    </div>
+    <div class="technical-skill-actions">
+      <button class="btn btn-secondary" onclick="updateTechnicalSkill(this)">
+        <i class="ti ti-refresh" aria-hidden="true"></i> スキルを更新
+      </button>
+      <button class="btn btn-secondary" onclick="removeTechnicalSkill(this)">
+        <i class="ti ti-trash" aria-hidden="true"></i> スキルを削除
+      </button>
     </div>`;
   list.appendChild(item);
   if (data) setTechnicalSkillValues(item, data);
   updateLivePreview();
   saveDraft();
+}
+
+function updateTechnicalSkill(button) {
+  const item = button.closest('.technical-skill-card');
+  if (!item) return;
+  const hasValue = ['category', 'name', 'period', 'level']
+    .some(field => getTechnicalSkillField(item, field).trim());
+  if (!hasValue) {
+    document.getElementById('status').innerHTML =
+      '<i class="ti ti-alert-circle"></i> 更新するスキル内容を入力してください。';
+    return;
+  }
+  updateLivePreview();
+  saveDraft();
+  document.getElementById('status').innerHTML =
+    '<i class="ti ti-check"></i> テクニカルスキルを更新しました。';
 }
 
 function removeTechnicalSkill(button) {

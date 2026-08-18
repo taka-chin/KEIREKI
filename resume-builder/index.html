@@ -311,6 +311,10 @@
     margin-bottom: 0;
   }
   .career-work-table + .career-work-table { margin-top: 10px; }
+  .career-work-table.career-company-page {
+    break-before: page;
+    page-break-before: always;
+  }
   .career-company-group,
   .career-project-group,
   .document-section {
@@ -1588,8 +1592,9 @@ function renderCareerWorkTables(works) {
       [w.employees ? `従業員数：${w.employees}` : '', w.listing ? `上場：${w.listing}` : ''].filter(Boolean).join('　')
     ].filter(Boolean).join('\n');
 
+    const pageBreakClass = workIndex > 0 ? ' career-company-page' : '';
     return `
-      <table class="career-work-table">
+      <table class="career-work-table${pageBreakClass}">
         <tbody class="career-company-group">
           <tr class="career-company-row">
             <td colspan="3" class="career-company-info" data-preview-keys="work-${workIndex}-company">${formatMultiline(companyLines)}</td>
@@ -1895,6 +1900,7 @@ function buildExportHTML() {
   .pdf-block{white-space:pre-wrap;font-size:14px;margin-bottom:28px}
   .career-work-table{width:100%;border-collapse:collapse;border:1px solid #777;margin-bottom:0}
   .career-work-table+.career-work-table{margin-top:10px}
+  .career-work-table.career-company-page{break-before:page;page-break-before:always}
   .career-company-group,.career-project-group,.document-section{break-inside:avoid;page-break-inside:avoid}
   .career-project-group{break-before:auto;page-break-before:auto}
   .career-work-table td{border:0.5px solid #aaa;padding:5px 8px;vertical-align:top;color:#111}

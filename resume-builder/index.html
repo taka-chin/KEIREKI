@@ -417,6 +417,64 @@
   }
   .pdf-table th { background: #eee; text-align: left; font-weight: 400; }
   .pdf-work-desc { white-space: pre-wrap; min-height: 72px; }
+  .resume-fixed {
+    color: #111;
+    font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .resume-fixed .resume-head {
+    display: grid;
+    grid-template-columns: 1fr 96px;
+    gap: 14px;
+    align-items: start;
+    margin-bottom: 8px;
+  }
+  .resume-fixed .resume-title {
+    text-align: center;
+    font-size: 24px;
+    letter-spacing: .45em;
+    margin: 0 0 8px;
+  }
+  .resume-fixed .resume-date { text-align: right; font-size: 12px; margin-bottom: 6px; }
+  .resume-photo {
+    width: 96px;
+    aspect-ratio: 3 / 4;
+    border: 1px solid #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .resume-fixed table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .resume-fixed th,
+  .resume-fixed td {
+    border: 1px solid #111;
+    padding: 5px 7px;
+    vertical-align: middle;
+    font-size: 12px;
+    word-break: break-word;
+  }
+  .resume-fixed th {
+    background: #f3f3f3;
+    font-weight: 400;
+    text-align: left;
+  }
+  .resume-fixed .resume-section-title {
+    margin: 10px 0 4px;
+    font-weight: 700;
+  }
+  .resume-fixed .resume-history td { height: 26px; }
+  .resume-fixed .resume-motivation {
+    min-height: 112px;
+    white-space: pre-wrap;
+  }
   .pdf-section-title {
     font-size: 17px;
     font-weight: 700;
@@ -1521,31 +1579,7 @@ function buildHTML(data) {
   } else {
     if (resumeTemplateType === 'pdf') return renderPdfStyleResume(data, today, contacts);
     if (resumeTemplate) return renderDocumentTemplate(resumeTemplate, data, today, contacts, 'resume');
-
-    const age = data.birthday
-      ? `（${Math.floor((Date.now() - new Date(data.birthday)) / 31557600000)}歳）` : '';
-    const eduRows = data.edus.map(e =>
-      `<tr><td style="width:90px">${esc(e.date)}</td><td>${esc(e.content)}</td></tr>`).join('');
-    const workRows2 = data.works2.map(w =>
-      `<tr><td style="width:90px">${esc(w.date)}</td><td>${esc(w.content)}</td></tr>`).join('');
-
-    return `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <h1>${esc(data.name || '氏名未入力')}</h1>
-          ${data.nameKana ? `<div class="kana">${esc(data.nameKana)}</div>` : ''}
-        </div>
-        <div class="footer-date" style="margin-top:0">${today}</div>
-      </div>
-      <div class="contacts">${[data.birthday ? data.birthday.replace(/-/g,'/') + age : '', ...contacts.split(' ｜ ')].filter(Boolean).join(' ｜ ')}</div>
-      <hr class="sec-hr">
-      <table>
-        <tr class="tbl-head"><td colspan="2">学歴</td></tr>
-        ${eduRows || '<tr><td colspan="2" style="color:#aaa">（未入力）</td></tr>'}
-        <tr class="tbl-head"><td colspan="2">職歴</td></tr>
-        ${workRows2 || '<tr><td colspan="2" style="color:#aaa">（未入力）</td></tr>'}
-      </table>
-      ${data.motivation ? `<div class="sec-title" style="margin-top:12px">志望動機・自己PR</div><p style="font-size:12px;white-space:pre-wrap">${esc(data.motivation)}</p>` : ''}`;
+    return renderFixedResume(data, today);
   }
 }
 
@@ -1678,39 +1712,61 @@ function employmentText(type) {
 }
 
 function renderPdfStyleResume(data, today, contacts) {
+  return renderFixedResume(data, today, contacts);
+}
+
+function renderFixedResume(data, today) {
   const age = data.birthday
     ? `（${Math.floor((Date.now() - new Date(data.birthday)) / 31557600000)}歳）` : '';
   const eduRows = data.edus.map(e =>
-    `<tr><td style="width:110px">${esc(e.date)}</td><td>${esc(e.content)}</td></tr>`).join('');
+    `<tr><td style="width:22%">${esc(e.date)}</td><td>${esc(e.content)}</td></tr>`).join('');
   const workRows = data.works2.map(w =>
-    `<tr><td style="width:110px">${esc(w.date)}</td><td>${esc(w.content)}</td></tr>`).join('');
+    `<tr><td style="width:22%">${esc(w.date)}</td><td>${esc(w.content)}</td></tr>`).join('');
 
   return `
-    <div class="pdf-career">
+    <div class="resume-fixed">
       <section class="pdf-sheet">
-        <div class="pdf-title">履歴書</div>
-        <div class="pdf-meta">${today}</div>
-        <table class="pdf-table">
+        <div class="resume-head">
+          <div>
+            <div class="resume-title">履歴書</div>
+            <div class="resume-date">${today} 現在</div>
+            <table>
+              <tr>
+                <th style="width:18%">ふりがな</th>
+                <td>${esc(data.nameKana)}</td>
+              </tr>
+              <tr>
+                <th>氏名</th>
+                <td style="font-size:18px">${esc(data.name || '氏名未入力')}</td>
+              </tr>
+            </table>
+          </div>
+          <div class="resume-photo">写真<br>3cm x 4cm</div>
+        </div>
+        <table>
           <tr>
-            <th style="width:28%">氏名</th>
-            <td>${esc(data.name || '氏名未入力')}${data.nameKana ? `<br>${esc(data.nameKana)}` : ''}</td>
+            <th style="width:18%">生年月日</th>
+            <td style="width:32%">${esc(data.birthday)} ${age}</td>
+            <th style="width:18%">電話番号</th>
+            <td>${esc(data.phone)}</td>
           </tr>
           <tr>
-            <th>生年月日</th>
-            <td>${esc(data.birthday)} ${age}</td>
+            <th>メール</th>
+            <td colspan="3">${esc(data.email)}</td>
           </tr>
           <tr>
-            <th>連絡先</th>
-            <td>${esc(contacts)}</td>
+            <th>住所</th>
+            <td colspan="3">${esc(data.address)}</td>
           </tr>
         </table>
-        <div class="pdf-section-title" style="margin-top:20px">学歴</div>
-        <table class="pdf-table">${eduRows || '<tr><td style="color:#aaa">（未入力）</td></tr>'}</table>
-        <div class="pdf-section-title" style="margin-top:20px">職歴</div>
-        <table class="pdf-table">${workRows || '<tr><td style="color:#aaa">（未入力）</td></tr>'}</table>
-        ${data.motivation ? `
-          <div class="pdf-section-title" style="margin-top:20px">志望動機・自己PR</div>
-          <div class="pdf-block">${esc(data.motivation)}</div>` : ''}
+        <div class="resume-section-title">学歴</div>
+        <table class="resume-history">${eduRows || '<tr><td style="width:22%;color:#aaa">（未入力）</td><td></td></tr>'}</table>
+        <div class="resume-section-title">職歴</div>
+        <table class="resume-history">${workRows || '<tr><td style="width:22%;color:#aaa">（未入力）</td><td></td></tr>'}</table>
+        <div class="resume-section-title">志望動機・自己PR</div>
+        <table>
+          <tr><td class="resume-motivation">${formatMultiline(data.motivation)}</td></tr>
+        </table>
       </section>
     </div>`;
 }
@@ -1896,6 +1952,17 @@ function buildExportHTML() {
   .pdf-table th,.pdf-table td{border:1px solid #111;padding:7px 12px;font-size:14px;vertical-align:top}
   .pdf-table th{background:#eee;text-align:left;font-weight:400}
   .pdf-work-desc{white-space:pre-wrap;min-height:72px}
+  .resume-fixed{color:#111;font-family:'Hiragino Mincho ProN','Yu Mincho','YuMincho',serif;font-size:12px;line-height:1.45}
+  .resume-fixed .resume-head{display:grid;grid-template-columns:1fr 96px;gap:14px;align-items:start;margin-bottom:8px}
+  .resume-fixed .resume-title{text-align:center;font-size:24px;letter-spacing:.45em;margin:0 0 8px}
+  .resume-fixed .resume-date{text-align:right;font-size:12px;margin-bottom:6px}
+  .resume-photo{width:96px;aspect-ratio:3/4;border:1px solid #111;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;line-height:1.45}
+  .resume-fixed table{width:100%;border-collapse:collapse;table-layout:fixed}
+  .resume-fixed th,.resume-fixed td{border:1px solid #111;padding:5px 7px;vertical-align:middle;font-size:12px;word-break:break-word}
+  .resume-fixed th{background:#f3f3f3;font-weight:400;text-align:left}
+  .resume-fixed .resume-section-title{margin:10px 0 4px;font-weight:700}
+  .resume-fixed .resume-history td{height:26px}
+  .resume-fixed .resume-motivation{min-height:112px;white-space:pre-wrap}
   .pdf-section-title{font-size:17px;font-weight:700;margin:0 0 12px;border-bottom:1px solid #111;padding-bottom:4px}
   .pdf-block{white-space:pre-wrap;font-size:14px;margin-bottom:28px}
   .career-work-table{width:100%;border-collapse:collapse;border:1px solid #777;margin-bottom:0}

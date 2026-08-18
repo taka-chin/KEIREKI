@@ -791,7 +791,7 @@ function generateTechnicalSkillsFromProjects() {
     return;
   }
 
-  const merged = mergeTechnicalSkills(collectTechnicalSkills(), generated);
+  const merged = groupTechnicalSkillsByCategory(mergeTechnicalSkills(collectTechnicalSkills(), generated));
   const list = document.getElementById('technical-skill-list');
   list.innerHTML = '';
   merged.forEach(skill => addTechnicalSkill(skill));
@@ -917,6 +917,17 @@ function mergeTechnicalSkills(existing, generated) {
     result.push(skill);
   });
   return result;
+}
+
+function groupTechnicalSkillsByCategory(skills = []) {
+  const groups = new Map();
+  skills.forEach(skill => {
+    const category = skill.category || 'その他';
+    const key = category.toLowerCase();
+    if (!groups.has(key)) groups.set(key, { category, items: [] });
+    groups.get(key).items.push(skill);
+  });
+  return [...groups.values()].flatMap(group => group.items);
 }
 
 function addWork2(data = null) {
@@ -1538,7 +1549,9 @@ function renderCareerProjectRows(work, project, workIndex, projectIndex) {
 }
 
 function renderTechnicalSkillsTable(skills = []) {
-  const items = skills.filter(skill => skill.category || skill.name || skill.period || skill.level);
+  const items = groupTechnicalSkillsByCategory(
+    skills.filter(skill => skill.category || skill.name || skill.period || skill.level)
+  );
   if (!items.length) return '';
 
   const categorySpans = items.map((skill, index) => {

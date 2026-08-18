@@ -513,6 +513,9 @@
           <button class="add-btn" onclick="generateTechnicalSkillsFromProjects()">
             <i class="ti ti-wand" aria-hidden="true"></i> プロジェクトから自動作成
           </button>
+          <button class="add-btn" onclick="refreshTechnicalSkillsFromProjects()">
+            <i class="ti ti-refresh" aria-hidden="true"></i> プロジェクトから一括更新
+          </button>
           <button class="add-btn" onclick="addTechnicalSkill()">
             <i class="ti ti-plus" aria-hidden="true"></i> スキルを追加
           </button>
@@ -822,14 +825,35 @@ function generateTechnicalSkillsFromProjects() {
   }
 
   const merged = groupTechnicalSkillsByCategory(mergeTechnicalSkills(collectTechnicalSkills(), generated));
-  const list = document.getElementById('technical-skill-list');
-  list.innerHTML = '';
-  merged.forEach(skill => addTechnicalSkill(skill));
-  if (!merged.length) addTechnicalSkill();
+  renderTechnicalSkillInputs(merged);
   document.getElementById('status').innerHTML =
     `<i class="ti ti-check"></i> テクニカルスキルを${generated.length}件作成しました。`;
   updateLivePreview();
   saveDraft();
+}
+
+function refreshTechnicalSkillsFromProjects() {
+  const generated = buildTechnicalSkillsFromProjects(collectData().works);
+  if (!generated.length) {
+    document.getElementById('status').innerHTML =
+      '<i class="ti ti-alert-circle"></i> 開発環境と担当期間を入力すると一括更新できます。';
+    return;
+  }
+
+  const refreshed = groupTechnicalSkillsByCategory(applyManualSkillLevels(generated, collectTechnicalSkills()));
+  renderTechnicalSkillInputs(refreshed);
+  document.getElementById('status').innerHTML =
+    `<i class="ti ti-check"></i> プロジェクトからテクニカルスキル一覧を${refreshed.length}件に一括更新しました。`;
+  updateLivePreview();
+  saveDraft();
+}
+
+function renderTechnicalSkillInputs(skills = []) {
+  const list = document.getElementById('technical-skill-list');
+  if (!list) return;
+  list.innerHTML = '';
+  skills.forEach(skill => addTechnicalSkill(skill));
+  if (!skills.length) addTechnicalSkill();
 }
 
 function buildTechnicalSkillsFromProjects(works = []) {
@@ -947,6 +971,19 @@ function mergeTechnicalSkills(existing, generated) {
     result.push(skill);
   });
   return result;
+}
+
+function applyManualSkillLevels(generated, existing) {
+  return generated.map(skill => {
+    const match = existing.find(item =>
+      item.category.trim().toLowerCase() === skill.category.trim().toLowerCase() &&
+      item.name.trim().toLowerCase() === skill.name.trim().toLowerCase()
+    );
+    return {
+      ...skill,
+      level: match?.level || skill.level
+    };
+  });
 }
 
 function groupTechnicalSkillsByCategory(skills = []) {

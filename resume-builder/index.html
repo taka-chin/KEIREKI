@@ -577,8 +577,11 @@
     </div>
 
     <div class="actions">
-      <button class="btn btn-primary" onclick="generatePDF()">
-        <i class="ti ti-download" aria-hidden="true"></i> PDFを生成
+      <button class="btn btn-primary" onclick="openPrintView()">
+        <i class="ti ti-printer" aria-hidden="true"></i> 印刷でPDF保存
+      </button>
+      <button class="btn btn-secondary" onclick="downloadHTML()">
+        <i class="ti ti-download" aria-hidden="true"></i> HTMLを出力
       </button>
     </div>
     <div class="draft-actions">
@@ -1796,16 +1799,19 @@ function normalizeCompanySearchText(text) {
     .trim();
 }
 
-function generatePDF() {
+function buildExportHTML() {
   const data = collectData();
   const title = docType === 'career' ? '職務経歴書' : '履歴書';
   const bodyHTML = buildHTML(data);
 
-  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+  return {
+    title,
+    filename: `${title}_${data.name || 'document'}.html`,
+    html: `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
 <title>${title}_${data.name || 'document'}</title>
 <style>
   body { font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN',Meiryo,sans-serif;
-    font-size:12.5px;color:#222;line-height:1.65;padding:32px 44px;max-width:800px;margin:0 auto }
+    font-size:12.5px;color:#222;line-height:1.65;padding:24px 32px;max-width:800px;margin:0 auto }
   h1{font-size:20px;font-weight:700;margin-bottom:2px;color:#111}
   .kana{font-size:12px;color:#888;margin-bottom:6px}
   .contacts{font-size:11.5px;color:#555;display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
@@ -1832,7 +1838,7 @@ function generatePDF() {
   .pdf-work-desc{white-space:pre-wrap;min-height:72px}
   .pdf-section-title{font-size:17px;font-weight:700;margin:0 0 12px;border-bottom:1px solid #111;padding-bottom:4px}
   .pdf-block{white-space:pre-wrap;font-size:14px;margin-bottom:28px}
-  .career-work-table{width:100%;border-collapse:collapse;border:1px solid #777;margin-bottom:0;page-break-inside:avoid}
+  .career-work-table{width:100%;border-collapse:collapse;border:1px solid #777;margin-bottom:0}
   .career-work-table+.career-work-table{margin-top:10px}
   .career-work-table td{border:0.5px solid #aaa;padding:5px 8px;vertical-align:top;color:#111}
   .career-work-table .career-company-row td{border-top:2px solid #111}
@@ -1847,19 +1853,53 @@ function generatePDF() {
   .career-block-title{font-weight:700;margin:0 0 4px}
   .career-block{margin-bottom:14px}
   .career-block:last-child{margin-bottom:0}
-  @media print{body{padding:16px 24px}@page{margin:1.5cm}}
+  .technical-skills-table{width:100%;border-collapse:collapse;border:1px solid #777;margin:6px 0 12px}
+  .technical-skills-table th,.technical-skills-table td{border:0.5px solid #aaa;padding:5px 8px;vertical-align:top;color:#111}
+  .technical-skills-table th{background:#f3f3f3;text-align:center;font-weight:700}
+  .technical-skills-table .technical-category{width:15%;font-weight:700;white-space:nowrap}
+  .technical-skills-table .technical-name{width:28%;font-weight:600}
+  .technical-skills-table .technical-period{width:16%;white-space:nowrap}
+  tr,.career-block{break-inside:avoid;page-break-inside:avoid}
+  @media print{body{padding:0;max-width:none}@page{size:A4;margin:12mm}}
 </style>
-</head><body>${bodyHTML}</body></html>`;
+</head><body>${bodyHTML}</body></html>`
+  };
+}
+
+function downloadHTML() {
+  const { html, filename } = buildExportHTML();
 
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `${title}_${data.name || 'document'}.html`;
+  a.href = url; a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 
   document.getElementById('status').innerHTML =
-    '<i class="ti ti-check"></i> HTMLファイルを出力しました。ブラウザで開き「印刷」→「PDFに保存」を選択してください。';
+    '<i class="ti ti-check"></i> HTMLファイルを出力しました。ブラウザで開いて印刷できます。';
+}
+
+function openPrintView() {
+  const { html } = buildExportHTML();
+  const printWindow = window.open('', '_blank', 'noopener');
+  if (!printWindow) {
+    document.getElementById('status').innerHTML =
+      '<i class="ti ti-alert-circle"></i> 印刷画面を開けませんでした。ポップアップ許可を確認してください。';
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.addEventListener('load', () => printWindow.print(), { once: true });
+
+  document.getElementById('status').innerHTML =
+    '<i class="ti ti-check"></i> 印刷画面を開きました。送信先で「PDFに保存」を選択してください。';
+}
+
+function generatePDF() {
+  openPrintView();
 }
 
 initDraftPersistence();
